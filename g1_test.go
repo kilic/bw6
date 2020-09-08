@@ -121,22 +121,22 @@ func TestG1MultiplicativeProperties(t *testing.T) {
 		sone := big.NewInt(1)
 		g.MulScalar(t0, zero, s1)
 		if !g.Equal(t0, zero) {
-			t.Fatal(" 0 ^ s == 0")
+			t.Fatal("0 ^ s == 0")
 		}
 		g.MulScalar(t0, a, sone)
 		if !g.Equal(t0, a) {
-			t.Fatal(" a ^ 1 == a")
+			t.Fatal("a ^ 1 == a")
 		}
 		g.MulScalar(t0, zero, s1)
 		if !g.Equal(t0, zero) {
-			t.Fatal(" 0 ^ s == a")
+			t.Fatal("0 ^ s == a")
 		}
 		g.MulScalar(t0, a, s1)
 		g.MulScalar(t0, t0, s2)
 		s3.Mul(s1, s2)
 		g.MulScalar(t1, a, s3)
 		if !g.Equal(t0, t1) {
-			t.Errorf(" (a ^ s1) ^ s2 == a ^ (s1 * s2)")
+			t.Fatal("(a ^ s1) ^ s2 == a ^ (s1 * s2)")
 		}
 		g.MulScalar(t0, a, s1)
 		g.MulScalar(t1, a, s2)
@@ -144,7 +144,7 @@ func TestG1MultiplicativeProperties(t *testing.T) {
 		s3.Add(s1, s2)
 		g.MulScalar(t1, a, s3)
 		if !g.Equal(t0, t1) {
-			t.Errorf(" (a ^ s1) + (a ^ s2) == a ^ (s1 + s2)")
+			t.Fatal("(a ^ s1) + (a ^ s2) == a ^ (s1 + s2)")
 		}
 	}
 }

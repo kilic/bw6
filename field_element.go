@@ -10,6 +10,7 @@ import (
 
 type fe /****			***/ [N_LIMBS]uint64
 type fe3 /***			***/ [3]fe
+type fe6 /***			***/ [2]fe3
 
 func (e *fe) setBytes(in []byte) *fe {
 	l := len(in)
@@ -202,12 +203,14 @@ func (e *fe) mul2() uint64 {
 func (e *fe3) zero() *fe3 {
 	e[0].zero()
 	e[1].zero()
+	e[2].zero()
 	return e
 }
 
 func (e *fe3) one() *fe3 {
 	e[0].one()
 	e[1].zero()
+	e[2].zero()
 	return e
 }
 
@@ -235,7 +238,7 @@ func (e *fe3) rand(r io.Reader) (*fe3, error) {
 }
 
 func (e *fe3) isOne() bool {
-	return e[0].isOne() && e[1].isZero() && e[1].isZero()
+	return e[0].isOne() && e[1].isZero() && e[2].isZero()
 }
 
 func (e *fe3) isZero() bool {
@@ -244,4 +247,46 @@ func (e *fe3) isZero() bool {
 
 func (e *fe3) equal(e2 *fe3) bool {
 	return e[0].equal(&e2[0]) && e[1].equal(&e2[1]) && e[2].equal(&e2[2])
+}
+
+func (e *fe6) zero() *fe6 {
+	e[0].zero()
+	e[1].zero()
+	return e
+}
+
+func (e *fe6) one() *fe6 {
+	e[0].one()
+	e[1].zero()
+	return e
+}
+
+func (e *fe6) set(e2 *fe6) *fe6 {
+	e[0].set(&e2[0])
+	e[1].set(&e2[1])
+	return e
+}
+
+func (e *fe6) rand(r io.Reader) (*fe6, error) {
+	a0, err := new(fe3).rand(r)
+	if err != nil {
+		return nil, err
+	}
+	a1, err := new(fe3).rand(r)
+	if err != nil {
+		return nil, err
+	}
+	return &fe6{*a0, *a1}, nil
+}
+
+func (e *fe6) isOne() bool {
+	return e[0].isOne() && e[1].isZero()
+}
+
+func (e *fe6) isZero() bool {
+	return e[0].isZero() && e[1].isZero()
+}
+
+func (e *fe6) equal(e2 *fe6) bool {
+	return e[0].equal(&e2[0]) && e[1].equal(&e2[1])
 }

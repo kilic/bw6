@@ -98,7 +98,7 @@ var r2 = &fe{
 }
 
 // nonResidue = -4
-var nonResidue = &fe{
+var nonResidue1 = &fe{
 	0xe12e00000001e9c2,
 	0x63c1e3faa001cd69,
 	0xb1b4384fcbe29cf6,
@@ -111,6 +111,24 @@ var nonResidue = &fe{
 	0x5c3a0745675e8452,
 	0x446f17918c5f5700,
 	0x00fdf24e3267fa1e,
+}
+
+// nonResidue2 = -4u^0 + 0u^1 + 0u^2
+var nonResidue2 = &fe3{
+	fe{
+		0xe12e00000001e9c2,
+		0x63c1e3faa001cd69,
+		0xb1b4384fcbe29cf6,
+		0xc79630bc713d5a1d,
+		0x30127ac071851e2d,
+		0x0979f350dcd36af1,
+		0x6a66defed8b361f2,
+		0x53abac78b24d4e23,
+		0xb7ab89dede485a92,
+		0x5c3a0745675e8452,
+		0x446f17918c5f5700,
+		0x00fdf24e3267fa1e,
+	},
 }
 
 // pPlus1Over4 = (p + 1) / 4

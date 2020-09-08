@@ -65,61 +65,73 @@ func (e *fp3) one() *fe3 {
 	return new(fe3).one()
 }
 
-func (e *fp3) fromMont(c, a *fe3) {
-	fromMont(&c[0], &a[0])
-	fromMont(&c[1], &a[1])
-	fromMont(&c[2], &a[2])
-}
-
 func (e *fp3) add(c, a, b *fe3) {
+	// c0 = a0 + b0
+	// c1 = a1 + b1
+	// c2 = a2 + b2
 	add(&c[0], &a[0], &b[0])
 	add(&c[1], &a[1], &b[1])
 	add(&c[2], &a[2], &b[2])
 }
 
 func (e *fp3) ladd(c, a, b *fe3) {
+	// c0 = a0 + b0
+	// c1 = a1 + b1
+	// c2 = a2 + b2
 	ladd(&c[0], &a[0], &b[0])
 	ladd(&c[1], &a[1], &b[1])
 	ladd(&c[2], &a[2], &b[2])
 }
 
 func (e *fp3) double(c, a *fe3) {
+	// c0 = 2a0
+	// c1 = 2a1
+	// c2 = 2a2
 	double(&c[0], &a[0])
 	double(&c[1], &a[1])
 	double(&c[2], &a[2])
 }
 
 func (e *fp3) ldouble(c, a *fe3) {
+	// c0 = 2a0
+	// c1 = 2a1
+	// c2 = 2a2
 	ldouble(&c[0], &a[0])
 	ldouble(&c[1], &a[1])
 	ldouble(&c[2], &a[2])
 }
 
 func (e *fp3) sub(c, a, b *fe3) {
+	// c0 = a0 - b0
+	// c1 = a1 - b1
+	// c2 = a2 - b2
 	sub(&c[0], &a[0], &b[0])
 	sub(&c[1], &a[1], &b[1])
 	sub(&c[2], &a[2], &b[2])
 }
 
 func (e *fp3) neg(c, a *fe3) {
+	// c0 = -a0
+	// c1 = -a1
+	// c2 = -a2
 	neg(&c[0], &a[0])
 	neg(&c[1], &a[1])
 	neg(&c[2], &a[2])
 }
 
 func (e *fp3) conjugate(c, a *fe3) {
+	// c0 = a0
+	// c1 = -a1
+	// c2 = a2
 	c.set(a)
 	c[0].set(&a[0])
 	neg(&c[1], &a[1])
 	c[2].set(&a[2])
 }
 
-func (e *fp3) mulByNonResidue(c, a *fe3) {
-}
-
 func (e *fp3) mul(c, a, b *fe3) {
 	// Guide to Pairing Based Cryptography
-	// Article 5: Arithmetic of Finite Fields, Algorithm 5.21
+	// Algorithm 5.21
 
 	t := e.t
 	mul(t[0], &a[0], &b[0])  // v0 = a0b0
@@ -132,9 +144,8 @@ func (e *fp3) mul(c, a, b *fe3) {
 	subAssign(t[3], t[4])    // (a1 + a2)(b1 + b2) - v1 - v2
 
 	doubleAssign(t[3])
-	doubleAssign(t[3])
-	neg(t[3], t[3])       // ((a1 + a2)(b1 + b2) - v1 - v2)α
-	add(t[5], t[0], t[3]) // c0 = ((a1 + a2)(b1 + b2) - v1 - v2)α + v0
+	doubleAssign(t[3])    // -((a1 + a2)(b1 + b2) - v1 - v2)α
+	sub(t[5], t[0], t[3]) // c0 = ((a1 + a2)(b1 + b2) - v1 - v2)α + v0
 
 	ladd(t[3], &a[0], &a[1]) // a0 + a1
 	ladd(t[4], &b[0], &b[1]) // b0 + b1
@@ -143,9 +154,8 @@ func (e *fp3) mul(c, a, b *fe3) {
 	sub(t[3], t[3], t[4])    // (a0 + a1)(b0 + b1) - v0 - v1
 
 	double(t[4], t[2])
-	doubleAssign(t[4])
-	neg(t[4], t[4])        // αv2
-	add(&c[1], t[3], t[4]) // c1 = (a0 + a1)(b0 + b1) - v0 - v1 + αv2
+	doubleAssign(t[4])     // -αv2
+	sub(&c[1], t[3], t[4]) // c1 = (a0 + a1)(b0 + b1) - v0 - v1 + αv2
 
 	ladd(t[3], &a[0], &a[2]) // a0 + a2
 	ladd(t[4], &b[0], &b[2]) // b0 + b2
@@ -158,7 +168,7 @@ func (e *fp3) mul(c, a, b *fe3) {
 
 func (e *fp3) square(c, a *fe3) {
 	// Multiplication and Squaring on Pairing-Friendly Fields
-	// Section 4, Algorithm CH-SQR2
+	// Algorithm CH-SQR2
 	// https://eprint.iacr.org/2006/471
 
 	t := e.t
@@ -173,16 +183,14 @@ func (e *fp3) square(c, a *fe3) {
 	square(t[4], &a[2])     // s4 = a2^2
 
 	double(t[5], t[3])
-	doubleAssign(t[5])
-	neg(t[5], t[5]) // αs3
+	doubleAssign(t[5]) // -αs3
 
-	add(&c[0], t[0], t[5]) // c0 = s0 + αs3
+	sub(&c[0], t[0], t[5]) // c0 = s0 + αs3
 
 	double(t[5], t[4])
-	doubleAssign(t[5])
-	neg(t[5], t[5]) // αs4
+	doubleAssign(t[5]) // -αs4
 
-	add(&c[1], t[1], t[5]) // c1 = s1 + αs4
+	sub(&c[1], t[1], t[5]) // c1 = s1 + αs4
 
 	addAssign(t[1], t[2])
 	add(t[1], t[1], t[3])
@@ -203,7 +211,7 @@ func (e *fp3) exp(c, a *fe3, s *big.Int) {
 
 func (e *fp3) inverse(c, a *fe3) {
 	// Guide to Pairing Based Cryptography
-	// Article 5: Arithmetic of Finite Fields, Algorithm 5.23
+	// Algorithm 5.23
 
 	t := e.t
 	square(t[0], &a[0])     // v0 = a0^2
@@ -213,7 +221,7 @@ func (e *fp3) inverse(c, a *fe3) {
 	doubleAssign(t[1])
 	neg(t[1], t[1]) // αv5
 
-	subAssign(t[0], t[1])   // A = v0 - α * v5
+	subAssign(t[0], t[1])   // A = v0 - αv5
 	square(t[1], &a[1])     // v1 = a1^2
 	mul(t[2], &a[0], &a[2]) // v4 = a0a2
 	subAssign(t[1], t[2])   // C = v1 - v4
@@ -230,19 +238,12 @@ func (e *fp3) inverse(c, a *fe3) {
 	addAssign(t[3], t[4])   // Ca1 + Ba2
 
 	doubleAssign(t[3])
-	doubleAssign(t[3])
-	neg(t[3], t[3]) // α * (C * a1 + B * a2)
+	doubleAssign(t[3]) // -α(Ca1 + Ba2)
 
 	mul(t[4], &a[0], t[0]) // Aa0
-	addAssign(t[3], t[4])  // v6 = Aa0 * α(C * a1 + B * a2)
-	inverse(t[3], t[3])    // F = v6^-1
-	mul(&c[0], t[0], t[3]) // c0 = AF
-	mul(&c[1], t[2], t[3]) // c1 = BF
-	mul(&c[2], t[1], t[3]) // c2 = CF
-}
-
-func (e *fp3) mul0(c, a *fe3, b *fe) {
-	mul(&c[0], &a[0], b)
-	mul(&c[1], &a[1], b)
-	mul(&c[2], &a[2], b)
+	subAssign(t[4], t[3])  // v6 = Aa0 + α(Ca1 + Ba2)
+	inverse(t[4], t[4])    // F = v6^-1
+	mul(&c[0], t[0], t[4]) // c0 = AF
+	mul(&c[1], t[2], t[4]) // c1 = BF
+	mul(&c[2], t[1], t[4]) // c2 = CF
 }

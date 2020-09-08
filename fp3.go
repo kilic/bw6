@@ -176,7 +176,7 @@ func (e *fp3) square(c, a *fe3) {
 	mul(t[1], &a[0], &a[1]) // a0a1
 	doubleAssign(t[1])      // s1 = 2a0a1
 	sub(t[2], &a[0], &a[1]) // a0 - a1
-	addAssign(t[2], &a[2])  // a0 - a1 + a2
+	laddAssign(t[2], &a[2]) // a0 - a1 + a2
 	square(t[2], t[2])      // s2 = (a0 - a1 + a2)^2
 	mul(t[3], &a[1], &a[2]) // a1a2
 	doubleAssign(t[3])      // s3 = 2a1a2

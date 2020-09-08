@@ -6,6 +6,8 @@ import (
 	"math/big"
 )
 
+var fuz = 100
+
 func padBytes(in []byte, size int) []byte {
 	out := make([]byte, size)
 	if len(in) > size {

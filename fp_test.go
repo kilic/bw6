@@ -7,8 +7,6 @@ import (
 	"testing"
 )
 
-var fuz = 100
-
 func TestFpSerialization(t *testing.T) {
 	t.Run("zero", func(t *testing.T) {
 		in := make([]byte, FE_BYTE_SIZE)

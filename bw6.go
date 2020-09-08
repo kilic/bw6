@@ -8,6 +8,7 @@ const TWELWE_WORD_BYTE_SIZE = 768
 /*
 	Base field
 	p = 0x122e824fb83ce0ad187c94004faff3eb926186a81d14688528275ef8087be41707ba638e584e91903cebaff25b423048689c8ed12f9fd9071dcd3dc73ebff2e98a116c25667a8f8160cf8aeeaf0a437e6913e6870000082f49d00000000008b
+	r = 2^768
 */
 
 // -p^(-1) mod 2^64
@@ -80,7 +81,7 @@ var negativeOne = &fe{
 	0x00d0f0a60a5be58c,
 }
 
-// r^2 mod p
+// r2 = r^2 mod p
 var r2 = &fe{
 	0xc686392d2d1fa659,
 	0x7b14c9b2f79484ab,
@@ -96,7 +97,7 @@ var r2 = &fe{
 	0x00ad253c2da8d807,
 }
 
-// -4
+// nonResidue = -4
 var nonResidue = &fe{
 	0xe12e00000001e9c2,
 	0x63c1e3faa001cd69,

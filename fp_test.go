@@ -509,3 +509,199 @@ func BenchmarkMul(t *testing.B) {
 	}
 	_ = c
 }
+
+func TestFp3Serialization(t *testing.T) {
+	field := newFp3()
+	for i := 0; i < fuz; i++ {
+		a, _ := new(fe3).rand(rand.Reader)
+		b, err := field.fromBytes(field.toBytes(a))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !a.equal(b) {
+			t.Fatal("bad serialization")
+		}
+	}
+}
+
+func TestFp3AdditionProperties(t *testing.T) {
+	field := newFp3()
+	for i := 0; i < fuz; i++ {
+		zero := field.zero()
+		a, _ := new(fe3).rand(rand.Reader)
+		b, _ := new(fe3).rand(rand.Reader)
+		c_1 := field.new()
+		c_2 := field.new()
+		field.add(c_1, a, zero)
+		if !c_1.equal(a) {
+			t.Fatal("a + 0 == a")
+		}
+		field.sub(c_1, a, zero)
+		if !c_1.equal(a) {
+			t.Fatal("a - 0 == a")
+		}
+		field.double(c_1, zero)
+		if !c_1.equal(zero) {
+			t.Fatal("2 * 0 == 0")
+		}
+		field.neg(c_1, zero)
+		if !c_1.equal(zero) {
+			t.Fatal("-0 == 0")
+		}
+		field.sub(c_1, zero, a)
+		field.neg(c_2, a)
+		if !c_1.equal(c_2) {
+			t.Fatal("0-a == -a")
+		}
+		field.double(c_1, a)
+		field.add(c_2, a, a)
+		if !c_1.equal(c_2) {
+			t.Fatal("2 * a == a + a")
+		}
+		field.add(c_1, a, b)
+		field.add(c_2, b, a)
+		if !c_1.equal(c_2) {
+			t.Fatal("a + b = b + a")
+		}
+		field.sub(c_1, a, b)
+		field.sub(c_2, b, a)
+		field.neg(c_2, c_2)
+		if !c_1.equal(c_2) {
+			t.Fatal("a - b = - ( b - a )")
+		}
+		c_x, _ := new(fe3).rand(rand.Reader)
+		field.add(c_1, a, b)
+		field.add(c_1, c_1, c_x)
+		field.add(c_2, a, c_x)
+		field.add(c_2, c_2, b)
+		if !c_1.equal(c_2) {
+			t.Fatal("(a + b) + c == (a + c ) + b")
+		}
+		field.sub(c_1, a, b)
+		field.sub(c_1, c_1, c_x)
+		field.sub(c_2, a, c_x)
+		field.sub(c_2, c_2, b)
+		if !c_1.equal(c_2) {
+			t.Fatal("(a - b) - c == (a - c ) -b")
+		}
+	}
+}
+
+func TestFp3MultiplicationProperties(t *testing.T) {
+	field := newFp3()
+	for i := 0; i < fuz; i++ {
+		a, _ := new(fe3).rand(rand.Reader)
+		b, _ := new(fe3).rand(rand.Reader)
+		zero := field.zero()
+		one := field.one()
+		c_1, c_2 := field.new(), field.new()
+		field.mul(c_1, a, zero)
+		if !c_1.equal(zero) {
+			t.Fatal("a * 0 == 0")
+		}
+		field.mul(c_1, a, one)
+		if !c_1.equal(a) {
+			t.Fatal("a * 1 == a")
+		}
+		field.mul(c_1, a, b)
+		field.mul(c_2, b, a)
+		if !c_1.equal(c_2) {
+			t.Fatal("a * b == b * a")
+		}
+		c_x, _ := new(fe3).rand(rand.Reader)
+		field.mul(c_1, a, b)
+		field.mul(c_1, c_1, c_x)
+		field.mul(c_2, c_x, b)
+		field.mul(c_2, c_2, a)
+		if !c_1.equal(c_2) {
+			t.Fatal("(a * b) * c == (a * c) * b")
+		}
+		field.square(a, zero)
+		if !a.equal(zero) {
+			t.Fatal("0^2 == 0")
+		}
+		field.square(a, one)
+		if !a.equal(one) {
+			t.Fatal("1^2 == 1")
+		}
+		_, _ = a.rand(rand.Reader)
+		field.square(c_1, a)
+		field.mul(c_2, a, a)
+		if !c_2.equal(c_1) {
+			t.Fatal("a^2 == a*a")
+		}
+	}
+}
+
+func TestFp3LazyOperations(t *testing.T) {
+	field := newFp3()
+	for i := 0; i < fuz; i++ {
+		a, _ := new(fe3).rand(rand.Reader)
+		b, _ := new(fe3).rand(rand.Reader)
+		c, _ := new(fe3).rand(rand.Reader)
+		c0 := new(fe3)
+		c1 := new(fe3)
+		field.ladd(c0, a, b)
+		field.add(c1, a, b)
+		field.mul(c0, c0, c)
+		field.mul(c1, c1, c)
+		if !c0.equal(c1) {
+			// l+ operator stands for lazy addition
+			t.Fatal("(a + b) * c == (a l+ b) * c")
+		}
+		_, _ = a.rand(rand.Reader)
+		b.set(a)
+		field.ldouble(a, a)
+		field.ladd(b, b, b)
+		if !a.equal(b) {
+			t.Fatal("2 l* a = a l+ a", i)
+		}
+	}
+}
+
+func TestFp3Exponentiation(t *testing.T) {
+	field := newFp3()
+	for i := 0; i < fuz; i++ {
+		a, _ := new(fe3).rand(rand.Reader)
+		u := field.new()
+		field.exp(u, a, big.NewInt(0))
+		if !u.equal(field.one()) {
+			t.Fatal("a^0 == 1")
+		}
+		field.exp(u, a, big.NewInt(1))
+		if !u.equal(a) {
+			t.Fatal("a^1 == a")
+		}
+		v := field.new()
+		field.mul(u, a, a)
+		field.mul(u, u, u)
+		field.mul(u, u, u)
+		field.exp(v, a, big.NewInt(8))
+		if !u.equal(v) {
+			t.Fatal("((a^2)^2)^2 == a^8")
+		}
+	}
+}
+
+func TestFp3Inversion(t *testing.T) {
+	field := newFp3()
+	u := field.new()
+	zero := field.zero()
+	one := field.one()
+	field.inverse(u, zero)
+	if !u.equal(zero) {
+		t.Fatal("(0 ^ -1) == 0)")
+	}
+	field.inverse(u, one)
+	if !u.equal(one) {
+		t.Fatal("(1 ^ -1) == 1)")
+	}
+	for i := 0; i < fuz; i++ {
+		a, _ := new(fe3).rand(rand.Reader)
+		field.inverse(u, a)
+		field.mul(u, u, a)
+		if !u.equal(one) {
+			t.Fatal("(r * a) * r * (a ^ -1) == r)")
+		}
+	}
+}

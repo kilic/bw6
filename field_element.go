@@ -8,7 +8,8 @@ import (
 	"math/big"
 )
 
-type fe /***			***/ [N_LIMBS]uint64
+type fe /****			***/ [N_LIMBS]uint64
+type fe3 /***			***/ [3]fe
 
 func (e *fe) setBytes(in []byte) *fe {
 	l := len(in)
@@ -196,4 +197,51 @@ func (e *fe) mul2() uint64 {
 	e[1] = e[1]<<1 | e[0]>>63
 	e[0] = e[0] << 1
 	return u
+}
+
+func (e *fe3) zero() *fe3 {
+	e[0].zero()
+	e[1].zero()
+	return e
+}
+
+func (e *fe3) one() *fe3 {
+	e[0].one()
+	e[1].zero()
+	return e
+}
+
+func (e *fe3) set(e2 *fe3) *fe3 {
+	e[0].set(&e2[0])
+	e[1].set(&e2[1])
+	e[2].set(&e2[2])
+	return e
+}
+
+func (e *fe3) rand(r io.Reader) (*fe3, error) {
+	a0, err := new(fe).rand(r)
+	if err != nil {
+		return nil, err
+	}
+	a1, err := new(fe).rand(r)
+	if err != nil {
+		return nil, err
+	}
+	a2, err := new(fe).rand(r)
+	if err != nil {
+		return nil, err
+	}
+	return &fe3{*a0, *a1, *a2}, nil
+}
+
+func (e *fe3) isOne() bool {
+	return e[0].isOne() && e[1].isZero() && e[1].isZero()
+}
+
+func (e *fe3) isZero() bool {
+	return e[0].isZero() && e[1].isZero() && e[2].isZero()
+}
+
+func (e *fe3) equal(e2 *fe3) bool {
+	return e[0].equal(&e2[0]) && e[1].equal(&e2[1]) && e[2].equal(&e2[2])
 }

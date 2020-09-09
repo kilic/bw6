@@ -140,6 +140,13 @@ func (g *G1) Equal(p1, p2 *PointG1) bool {
 	return t[0].equal(t[1]) && t[2].equal(t[3])
 }
 
+// InCorrectSubgroup checks whether given point is in correct subgroup.
+func (g *G1) InCorrectSubgroup(p *PointG1) bool {
+	tmp := &PointG1{}
+	g.MulScalar(tmp, p, q)
+	return g.IsZero(tmp)
+}
+
 // IsOnCurve checks if G1 point is on curve.
 func (g *G1) IsOnCurve(p *PointG1) bool {
 	if g.IsZero(p) {

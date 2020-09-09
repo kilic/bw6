@@ -14,6 +14,19 @@ func (g *G2) rand() *PointG2 {
 	return g.MulScalar(&PointG2{}, g.New().Set(&g2One), k)
 }
 
+func (g *G2) rand2() *PointG2 {
+	for {
+		x, _ := new(fe).rand(rand.Reader)
+		y := new(fe)
+		square(y, x)
+		mul(y, y, x)
+		add(y, y, b2)
+		if sqrt(y, y) {
+			return &PointG2{*x, *y, *one}
+		}
+	}
+}
+
 func TestG2Serialization(t *testing.T) {
 	g := NewG2()
 	for i := 0; i < fuz; i++ {
@@ -188,6 +201,20 @@ func TestG2MultiExpBatch(t *testing.T) {
 	_, _ = g.MultiExp(result, bases, scalars)
 	if !g.Equal(expected, result) {
 		t.Fatal("bad multi-exponentiation")
+	}
+}
+
+func TestG2ClearCofactor(t *testing.T) {
+	g := NewG2()
+	for i := 0; i < fuz; i++ {
+		a := g.rand2()
+		if g.InCorrectSubgroup(a) {
+			t.Fatal("near 0 probablity that this would occur")
+		}
+		g.ClearCofactor(a)
+		if !g.InCorrectSubgroup(a) {
+			t.Fatal("cofactor is not cleared")
+		}
 	}
 }
 

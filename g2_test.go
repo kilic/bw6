@@ -6,16 +6,16 @@ import (
 	"testing"
 )
 
-func (g *G1) rand() *PointG1 {
+func (g *G2) rand() *PointG2 {
 	k, err := rand.Int(rand.Reader, q)
 	if err != nil {
 		panic(err)
 	}
-	return g.MulScalar(&PointG1{}, g.New().Set(&g1One), k)
+	return g.MulScalar(&PointG2{}, g.New().Set(&g2One), k)
 }
 
-func TestG1Serialization(t *testing.T) {
-	g := NewG1()
+func TestG2Serialization(t *testing.T) {
+	g := NewG2()
 	for i := 0; i < fuz; i++ {
 		a := g.rand()
 		uncompressed := g.ToBytes(a)
@@ -29,21 +29,21 @@ func TestG1Serialization(t *testing.T) {
 	}
 }
 
-func TestG1IsOnCurve(t *testing.T) {
-	g := NewG1()
+func TestG2IsOnCurve(t *testing.T) {
+	g := NewG2()
 	zero := g.Zero()
 	if !g.IsOnCurve(zero) {
 		t.Fatal("zero must be on curve")
 	}
 	one := new(fe).one()
-	p := &PointG1{*one, *one, *one}
+	p := &PointG2{*one, *one, *one}
 	if g.IsOnCurve(p) {
 		t.Fatal("(1, 1) is not on curve")
 	}
 }
 
-func TestG1AdditiveProperties(t *testing.T) {
-	g := NewG1()
+func TestG2AdditiveProperties(t *testing.T) {
+	g := NewG2()
 	t0, t1 := g.New(), g.New()
 	zero := g.Zero()
 	for i := 0; i < fuz; i++ {
@@ -111,8 +111,8 @@ func TestG1AdditiveProperties(t *testing.T) {
 	}
 }
 
-func TestG1MultiplicativeProperties(t *testing.T) {
-	g := NewG1()
+func TestG2MultiplicativeProperties(t *testing.T) {
+	g := NewG2()
 	t0, t1 := g.New(), g.New()
 	zero := g.Zero()
 	for i := 0; i < fuz; i++ {
@@ -149,14 +149,14 @@ func TestG1MultiplicativeProperties(t *testing.T) {
 	}
 }
 
-func TestG1MultiExpExpected(t *testing.T) {
-	g := NewG1()
-	one := g.New().Set(&g1One)
+func TestG2MultiExpExpected(t *testing.T) {
+	g := NewG2()
+	one := g.New().Set(&g2One)
 	var scalars [2]*big.Int
-	var bases [2]*PointG1
+	var bases [2]*PointG2
 	scalars[0] = big.NewInt(2)
 	scalars[1] = big.NewInt(3)
-	bases[0], bases[1] = new(PointG1).Set(one), new(PointG1).Set(one)
+	bases[0], bases[1] = new(PointG2).Set(one), new(PointG2).Set(one)
 	expected, result := g.New(), g.New()
 	g.MulScalar(expected, one, big.NewInt(5))
 	_, _ = g.MultiExp(result, bases[:], scalars[:])
@@ -165,11 +165,11 @@ func TestG1MultiExpExpected(t *testing.T) {
 	}
 }
 
-func TestG1MultiExpBatch(t *testing.T) {
-	g := NewG1()
-	one := g.New().Set(&g1One)
+func TestG2MultiExpBatch(t *testing.T) {
+	g := NewG2()
+	one := g.New().Set(&g2One)
 	n := 1000
-	bases := make([]*PointG1, n)
+	bases := make([]*PointG2, n)
 	scalars := make([]*big.Int, n)
 	// scalars: [s0,s1 ... s(n-1)]
 	// bases: [P0,P1,..P(n-1)] = [s(n-1)*G, s(n-2)*G ... s0*G]
@@ -191,18 +191,18 @@ func TestG1MultiExpBatch(t *testing.T) {
 	}
 }
 
-func BenchmarkG1Add(t *testing.B) {
-	g := NewG1()
-	a, b, c := g.rand(), g.rand(), PointG1{}
+func BenchmarkG2Add(t *testing.B) {
+	g := NewG2()
+	a, b, c := g.rand(), g.rand(), PointG2{}
 	t.ResetTimer()
 	for i := 0; i < t.N; i++ {
 		g.Add(&c, a, b)
 	}
 }
 
-func BenchmarkG1Mul(t *testing.B) {
-	g := NewG1()
-	a, e, c := g.rand(), q, PointG1{}
+func BenchmarkG2Mul(t *testing.B) {
+	g := NewG2()
+	a, e, c := g.rand(), q, PointG2{}
 	t.ResetTimer()
 	for i := 0; i < t.N; i++ {
 		g.MulScalar(&c, a, e)

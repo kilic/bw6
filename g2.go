@@ -6,12 +6,12 @@ import (
 	"math/big"
 )
 
-// PointG1 is type for point in G1 and used for both affine and Jacobian representation.
+// PointG2 is type for point in G2 and used for both affine and Jacobian representation.
 // A point is accounted as in affine form if z is equal to one.
-type PointG1 [3]fe
+type PointG2 [3]fe
 
 // Set sets the point p2 to p
-func (p *PointG1) Set(p2 *PointG1) *PointG1 {
+func (p *PointG2) Set(p2 *PointG2) *PointG2 {
 	p[0].set(&p2[0])
 	p[1].set(&p2[1])
 	p[2].set(&p2[2])
@@ -19,50 +19,50 @@ func (p *PointG1) Set(p2 *PointG1) *PointG1 {
 }
 
 // Zero sets point p as point at infinity
-func (p *PointG1) Zero() *PointG1 {
+func (p *PointG2) Zero() *PointG2 {
 	p[0].zero()
 	p[1].one()
 	p[2].zero()
 	return p
 }
 
-// IsAffine checks a G1 point whether it is in affine form.
-func (p *PointG1) IsAffine() bool {
+// IsAffine checks a G2 point whether it is in affine form.
+func (p *PointG2) IsAffine() bool {
 	return p[2].isOne()
 }
 
-type tempG1 struct {
+type tempG2 struct {
 	t [9]*fe
 }
 
-// G1 is struct for G1 group.
-type G1 struct {
-	tempG1
+// G2 is struct for G2 group.
+type G2 struct {
+	tempG2
 }
 
-// NewG1 constructs a new G1 instance.
-func NewG1() *G1 {
-	t := newTempG1()
-	return &G1{t}
+// NewG2 constructs a new G2 instance.
+func NewG2() *G2 {
+	t := newTempG2()
+	return &G2{t}
 }
 
-func newTempG1() tempG1 {
+func newTempG2() tempG2 {
 	t := [9]*fe{}
 	for i := 0; i < 9; i++ {
 		t[i] = &fe{}
 	}
-	return tempG1{t}
+	return tempG2{t}
 }
 
 // Q returns group order in big.Int.
-func (g *G1) Q() *big.Int {
+func (g *G2) Q() *big.Int {
 	return new(big.Int).Set(q)
 }
 
 // FromBytes constructs a new point given uncompressed byte input.
 // Input string is expected to be equal to 192 bytes and concatenation of x and y cooridanates.
 // (0, 0) is considered as infinity.
-func (g *G1) FromBytes(in []byte) (*PointG1, error) {
+func (g *G2) FromBytes(in []byte) (*PointG2, error) {
 	if len(in) != 2*FE_BYTE_SIZE {
 		return nil, errors.New("input string should be equal or larger than 96")
 	}
@@ -79,7 +79,7 @@ func (g *G1) FromBytes(in []byte) (*PointG1, error) {
 		return g.Zero(), nil
 	}
 	z := new(fe).one()
-	p := &PointG1{*x, *y, *z}
+	p := &PointG2{*x, *y, *z}
 	if !g.IsOnCurve(p) {
 		return nil, errors.New("point is not on curve")
 	}
@@ -88,7 +88,7 @@ func (g *G1) FromBytes(in []byte) (*PointG1, error) {
 
 // ToBytes serializes a point into bytes in uncompressed form.
 // It returns (0, 0) if point is infinity.
-func (g *G1) ToBytes(p *PointG1) []byte {
+func (g *G2) ToBytes(p *PointG2) []byte {
 	out := make([]byte, 2*FE_BYTE_SIZE)
 	if g.IsZero(p) {
 		return out
@@ -99,29 +99,29 @@ func (g *G1) ToBytes(p *PointG1) []byte {
 	return out
 }
 
-// New creates a new G1 Point which is equal to zero in other words point at infinity.
-func (g *G1) New() *PointG1 {
+// New creates a new G2 Point which is equal to zero in other words point at infinity.
+func (g *G2) New() *PointG2 {
 	return g.Zero()
 }
 
-// Zero returns a new G1 Point which is equal to point at infinity.
-func (g *G1) Zero() *PointG1 {
-	return new(PointG1).Zero()
+// Zero returns a new G2 Point which is equal to point at infinity.
+func (g *G2) Zero() *PointG2 {
+	return new(PointG2).Zero()
 }
 
-// One returns a new G1 Point which is equal to generator point.
-func (g *G1) One() *PointG1 {
-	p := &PointG1{}
-	return p.Set(&g1One)
+// One returns a new G2 Point which is equal to generator point.
+func (g *G2) One() *PointG2 {
+	p := &PointG2{}
+	return p.Set(&g2One)
 }
 
 // IsZero returns true if given point is equal to zero.
-func (g *G1) IsZero(p *PointG1) bool {
+func (g *G2) IsZero(p *PointG2) bool {
 	return p[2].isZero()
 }
 
-// Equal checks if given two G1 point is equal in their affine form.
-func (g *G1) Equal(p1, p2 *PointG1) bool {
+// Equal checks if given two G2 point is equal in their affine form.
+func (g *G2) Equal(p1, p2 *PointG2) bool {
 	if g.IsZero(p1) {
 		return g.IsZero(p2)
 	}
@@ -140,8 +140,8 @@ func (g *G1) Equal(p1, p2 *PointG1) bool {
 	return t[0].equal(t[1]) && t[2].equal(t[3])
 }
 
-// IsOnCurve checks if G1 point is on curve.
-func (g *G1) IsOnCurve(p *PointG1) bool {
+// IsOnCurve checks if G2 point is on curve.
+func (g *G2) IsOnCurve(p *PointG2) bool {
 	if g.IsZero(p) {
 		return true
 	}
@@ -150,19 +150,21 @@ func (g *G1) IsOnCurve(p *PointG1) bool {
 	square(t[1], &p[0])    // x^2
 	mul(t[1], t[1], &p[0]) // x^3
 	if p.IsAffine() {
-		addAssign(t[1], b)      // x^2 + b
+		addAssign(t[1], b2)     // x^2 + b
 		return t[0].equal(t[1]) // y^2 ?= x^3 + b
 	} else {
-		square(t[2], &p[2])     // z^2
-		square(t[3], t[2])      // z^4
-		mul(t[2], t[2], t[3])   // -b*z^6
-		subAssign(t[1], t[2])   // x^3 + b * z^6
+		square(t[2], &p[2])   // z^2
+		square(t[3], t[2])    // z^4
+		mul(t[2], t[2], t[3]) // z^6
+		doubleAssign(t[2])
+		doubleAssign(t[2])      // b*z^6
+		addAssign(t[1], t[2])   // x^3 + b * z^6
 		return t[0].equal(t[1]) // y^2 ?= x^3 + b * z^6
 	}
 }
 
 // Affine returns the affine representation of the given point
-func (g *G1) Affine(p *PointG1) *PointG1 {
+func (g *G2) Affine(p *PointG2) *PointG2 {
 	if g.IsZero(p) {
 		return p
 	}
@@ -178,17 +180,18 @@ func (g *G1) Affine(p *PointG1) *PointG1 {
 	return p
 }
 
-// Neg negates a G1 point p and assigns the result to the point at first argument.
-func (g *G1) Neg(r, p *PointG1) *PointG1 {
+// Neg negates a G2 point p and assigns the result to the point at first argument.
+func (g *G2) Neg(r, p *PointG2) *PointG2 {
 	r[0].set(&p[0])
 	r[2].set(&p[2])
 	neg(&r[1], &p[1])
 	return r
 }
 
-// Add adds two G1 points p1, p2 and assigns the result to point at first argument.
-func (g *G1) Add(r, p1, p2 *PointG1) *PointG1 {
-	// http://www.hyperelliptic.org/EFD/gp/auto-shortw-jacobian-0.html#addition-add-2007-bl
+// Add adds two G2 points p1, p2 and assigns the result to point at first argument.
+func (g *G2) Add(r, p1, p2 *PointG2) *PointG2 {
+	// http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html
+	// add-2007-bl
 	if g.IsZero(p1) {
 		return r.Set(p2)
 	}
@@ -235,8 +238,8 @@ func (g *G1) Add(r, p1, p2 *PointG1) *PointG1 {
 	return r
 }
 
-// Double doubles a G1 point p and assigns the result to the point at first argument.
-func (g *G1) Double(r, p *PointG1) *PointG1 {
+// Double doubles a G2 point p and assigns the result to the point at first argument.
+func (g *G2) Double(r, p *PointG2) *PointG2 {
 	// http://www.hyperelliptic.org/EFD/gp/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
 	if g.IsZero(p) {
 		return r.Set(p)
@@ -267,17 +270,17 @@ func (g *G1) Double(r, p *PointG1) *PointG1 {
 	return r
 }
 
-// Sub subtracts two G1 points p1, p2 and assigns the result to point at first argument.
-func (g *G1) Sub(c, a, b *PointG1) *PointG1 {
-	d := &PointG1{}
+// Sub subtracts two G2 points p1, p2 and assigns the result to point at first argument.
+func (g *G2) Sub(c, a, b *PointG2) *PointG2 {
+	d := &PointG2{}
 	g.Neg(d, b)
 	g.Add(c, a, d)
 	return c
 }
 
 // MulScalar multiplies a point by given scalar value in big.Int and assigns the result to point at first argument.
-func (g *G1) MulScalar(c, p *PointG1, e *big.Int) *PointG1 {
-	q, n := &PointG1{}, &PointG1{}
+func (g *G2) MulScalar(c, p *PointG2, e *big.Int) *PointG2 {
+	q, n := &PointG2{}, &PointG2{}
 	n.Set(p)
 	l := e.BitLen()
 	for i := 0; i < l; i++ {
@@ -289,26 +292,26 @@ func (g *G1) MulScalar(c, p *PointG1, e *big.Int) *PointG1 {
 	return c.Set(q)
 }
 
-// ClearCofactor maps given a G1 point to correct subgroup
-func (g *G1) ClearCofactor(p *PointG1) {
-	g.MulScalar(p, p, cofactorG1)
+// ClearCofactor maps given a G2 point to correct subgroup
+func (g *G2) ClearCofactor(p *PointG2) {
+	g.MulScalar(p, p, cofactorG2)
 }
 
-// MultiExp calculates multi exponentiation. Given pairs of G1 point and scalar values
+// MultiExp calculates multi exponentiation. Given pairs of G2 point and scalar values
 // (P_0, e_0), (P_1, e_1), ... (P_n, e_n) calculates r = e_0 * P_0 + e_1 * P_1 + ... + e_n * P_n
 // Length of points and scalars are expected to be equal, otherwise an error is returned.
 // Result is assigned to point at first argument.
-func (g *G1) MultiExp(r *PointG1, points []*PointG1, powers []*big.Int) (*PointG1, error) {
+func (g *G2) MultiExp(r *PointG2, points []*PointG2, powers []*big.Int) (*PointG2, error) {
 	if len(points) != len(powers) {
 		return nil, errors.New("point and scalar vectors should be in same length")
 	}
 	var c uint32 = 3
 	if len(powers) >= 32 {
-		c = uint32(math.Ceil(math.Log10(float64(len(powers)))))
+		c = uint32(math.Ceil(math.Log2(float64(len(powers)))))
 	}
 	bucketSize, numBits := (1<<c)-1, uint32(g.Q().BitLen())
-	windows := make([]*PointG1, numBits/c+1)
-	bucket := make([]*PointG1, bucketSize)
+	windows := make([]*PointG2, numBits/c+1)
+	bucket := make([]*PointG2, bucketSize)
 	acc, sum := g.New(), g.New()
 	for i := 0; i < bucketSize; i++ {
 		bucket[i] = g.New()
@@ -318,7 +321,7 @@ func (g *G1) MultiExp(r *PointG1, points []*PointG1, powers []*big.Int) (*PointG
 	var cur uint32
 	for cur <= numBits {
 		acc.Zero()
-		bucket = make([]*PointG1, (1<<c)-1)
+		bucket = make([]*PointG2, (1<<c)-1)
 		for i := 0; i < len(bucket); i++ {
 			bucket[i] = g.New()
 		}

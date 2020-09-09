@@ -7,6 +7,20 @@ import (
 	"testing"
 )
 
+// func toLimbs(a *fe, desc ...interface{}) {
+// 	fmt.Println(desc...)
+// 	for i := 0; i < 12; i++ {
+// 		fmt.Printf("%#16.16x,\n", a[i])
+// 	}
+// }
+
+// func debugFp3(c *fe3, desc ...interface{}) {
+// 	fmt.Println(desc...)
+// 	fmt.Printf("c0: %#x\n", toBytes(&c[0]))
+// 	fmt.Printf("c1: %#x\n", toBytes(&c[1]))
+// 	fmt.Printf("c2: %#x\n", toBytes(&c[2]))
+// }
+
 func TestFpSerialization(t *testing.T) {
 	t.Run("zero", func(t *testing.T) {
 		in := make([]byte, FE_BYTE_SIZE)
@@ -929,6 +943,100 @@ func TestFp6Inversion(t *testing.T) {
 		field.mul(u, u, a)
 		if !u.equal(one) {
 			t.Fatal("(r * a) * r * (a ^ -1) == r)")
+		}
+	}
+}
+
+func TestFrobenius3(t *testing.T) {
+	for i := 0; i < 3; i++ {
+		n := big.NewInt(int64(i))
+		z := modulus.big()
+		z.Exp(z, n, nil)
+		one, two, three := big.NewInt(1), big.NewInt(2), big.NewInt(3)
+		u1 := new(big.Int)
+		u1.Sub(z, one)
+		u1.Div(u1, three)
+		u2 := new(big.Int)
+		u2.Mul(z, two).Sub(u2, two).Div(u2, three)
+
+		fc1 := new(fe)
+		exp(fc1, nonResidue1, u1)
+		fc2 := new(fe)
+		exp(fc2, nonResidue1, u2)
+
+		if !fc1.equal(&frobeniuCoeffs31[i]) {
+			t.Fatal("bad Frobenius coefficient fp3 c1")
+		}
+		if !fc2.equal(&frobeniuCoeffs32[i]) {
+			t.Fatal("bad Frobenius coefficient fp3 c2")
+		}
+	}
+	field := newFp3()
+	for i := 0; i < 3; i++ {
+		n := big.NewInt(int64(i))
+		z := modulus.big()
+		z.Exp(z, n, nil)
+
+		a, _ := new(fe3).rand(rand.Reader)
+		r0 := new(fe3)
+		r1 := new(fe3)
+		field.exp(r0, a, z)
+		field.frobeniusMap(r1, a, i)
+		if !r1.equal(r0) {
+			t.Fatal("frobenius map failed")
+		}
+	}
+}
+
+func TestFrobenius6(t *testing.T) {
+
+	one, two := big.NewInt(1), big.NewInt(2)
+	for i := 0; i < 6; i++ {
+		n := big.NewInt(int64(i))
+		z := modulus.big()
+		u := new(big.Int)
+
+		// z = (p^n - 1) / 2
+		z.Exp(z, n, nil)
+		u.Sub(z, one)
+		u.Div(u, two)
+
+		// r = nqr ^ (p^n - 1) / 2
+		r := new(fe)
+		exp(r, nonResidue1, u)
+		z0, z1 := new(fe), new(fe)
+		mul(z0, &frobeniuCoeffs31[i%3], r)
+		mul(z1, &frobeniuCoeffs32[i%3], r)
+
+		if !r.equal(&frobeniusCoeffs6[i][0]) {
+			t.Fatal("bad frobenous coeffs, fp6 0")
+		}
+		if !z0.equal(&frobeniusCoeffs6[i][1]) {
+			t.Fatal("bad frobenous coeffs, fp6 1")
+		}
+		if !z1.equal(&frobeniusCoeffs6[i][2]) {
+			t.Fatal("bad frobenous coeffs, fp6 2")
+		}
+	}
+
+	field := newFp6(nil)
+	for i := 0; i < 6; i++ {
+		n := big.NewInt(int64(i))
+		z := modulus.big()
+		z.Exp(z, n, nil)
+		a, _ := new(fe6).rand(rand.Reader)
+		r0 := new(fe6)
+		r1 := new(fe6)
+		field.exp(r0, a, z)
+		field.frobeniusMap(r1, a, i)
+		if !r1.equal(r0) {
+			t.Fatal("frobenius map failed")
+		}
+		if i == 1 {
+			field.frobeniusMap1(r1, a, i)
+			if !r1.equal(r0) {
+				t.Fatal("frobenius map by 1 failed")
+			}
 		}
 	}
 }

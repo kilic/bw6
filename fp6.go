@@ -235,3 +235,19 @@ func (e *fp6) exp(c, a *fe6, s *big.Int) {
 	}
 	c.set(z)
 }
+
+func (e *fp6) frobeniusMap(c, a *fe6, power int) {
+	fp3 := e.fp3
+	fp3.frobeniusMap(&c[0], &a[0], power)
+	mul(&c[1][0], &a[1][0], &frobeniusCoeffs6[power%6][0])
+	mul(&c[1][1], &a[1][1], &frobeniusCoeffs6[power%6][1])
+	mul(&c[1][2], &a[1][2], &frobeniusCoeffs6[power%6][2])
+}
+
+func (e *fp6) frobeniusMap1(c, a *fe6, power int) {
+	fp3 := e.fp3
+	fp3.frobeniusMap(&c[0], &a[0], power)
+	neg(&c[1][0], &a[1][0])
+	mul(&c[1][1], &a[1][1], &frobeniusCoeffs6[1][1])
+	mul(&c[1][2], &a[1][2], &frobeniusCoeffs6[1][2])
+}

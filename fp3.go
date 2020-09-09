@@ -247,3 +247,21 @@ func (e *fp3) inverse(c, a *fe3) {
 	mul(&c[1], t[2], t[4]) // c1 = BF
 	mul(&c[2], t[1], t[4]) // c2 = CF
 }
+
+func (e *fp3) frobeniusMap(c, a *fe3, power int) {
+	c[0].set(&a[0])
+	mul(&c[1], &a[1], &frobeniuCoeffs31[power%3])
+	mul(&c[2], &a[2], &frobeniuCoeffs32[power%3])
+}
+
+func (e *fp3) frobeniusMap1(c, a *fe3, power int) {
+	c[0].set(&a[0])
+	mul(&c[1], &a[1], &frobeniuCoeffs31[1])
+	mul(&c[2], &a[2], &frobeniuCoeffs32[1])
+}
+
+func (e *fp3) frobeniusMap2(c, a *fe3, power int) {
+	c[0].set(&a[0])
+	mul(&c[1], &a[1], &frobeniuCoeffs31[2])
+	mul(&c[2], &a[2], &frobeniuCoeffs32[2])
+}

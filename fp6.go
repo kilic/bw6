@@ -251,3 +251,167 @@ func (e *fp6) frobeniusMap1(c, a *fe6, power int) {
 	mul(&c[1][1], &a[1][1], &frobeniusCoeffs6[1][1])
 	mul(&c[1][2], &a[1][2], &frobeniusCoeffs6[1][2])
 }
+
+// TODO: zexe uses different name which is mul by 034
+// lets say {a,b} \in Fp6 where
+// in sparse multiplication of a*b
+// a = (a00 + a01*u + a02*u^2) + (a10 + a11*u + a12* u^2)
+// b = (b00 + 0 + b02*u^2) + (0 + b11*u + 0)
+func (e *fp6) mulBy024Assign(a *fe6, c0, c1, c2 *fe) {
+	z0, z1, z2, z3, z4, z5 := &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}
+	z0.set(&a[0][0])
+	z1.set(&a[0][1])
+	z2.set(&a[0][2])
+	z3.set(&a[1][0])
+	z4.set(&a[1][1])
+	z5.set(&a[1][2])
+
+	x0, x2, x4 := &fe{}, &fe{}, &fe{}
+	x0.set(c0)
+	x2.set(c1)
+	x4.set(c2)
+
+	d0, d2, d4 := &fe{}, &fe{}, &fe{}
+	s0, s1 := &fe{}, &fe{}
+	t0, t1, t2, t3, t4 := &fe{}, &fe{}, &fe{}, &fe{}, &fe{}
+
+	mul(d0, z0, x0)
+	mul(d2, z2, x2)
+	mul(d4, z4, x4)
+	add(t2, z0, z4)
+	add(t1, z0, z2)
+	add(s0, z1, z3)
+	addAssign(s0, z5)
+
+	// z0
+	mul(s1, z1, x2)
+	add(t3, s1, d4)
+	mul(t4, t3, nonResidue1) // TODO: check
+	addAssign(t4, d0)
+	z0.set(t4)
+
+	// z1
+	mul(t3, z5, x4)
+	add(s1, s1, t3)
+	add(t3, t3, d2)
+	mul(t4, t3, nonResidue1)
+	mul(t3, z1, x0)
+	addAssign(s1, t3)
+	addAssign(t4, t3)
+	z1.set(t4)
+
+	// z2
+	add(t0, x0, x2)
+	mul(t3, t1, t0)
+	subAssign(t3, d0)
+	subAssign(t3, d2)
+	mul(t4, z3, x4)
+	addAssign(s1, t4)
+	addAssign(t3, t4)
+
+	// z3
+	add(t0, z2, z4)
+	z2.set(t3)
+	add(t1, x2, x4)
+	mul(t3, t0, t1)
+	subAssign(t3, d2)
+	subAssign(t3, d4)
+	mul(t4, t3, nonResidue1)
+	mul(t3, z3, x0)
+	addAssign(s1, t3)
+	addAssign(t4, t3)
+	z3.set(t4)
+
+	// z4
+	mul(t3, z5, x2)
+	addAssign(s1, t3)
+	mul(t4, t3, nonResidue1)
+	add(t0, x0, x4)
+	mul(t3, t2, t0)
+	subAssign(t3, d0)
+	subAssign(t3, d4)
+	addAssign(t4, t3)
+	z4.set(t4)
+
+	// z5
+	add(t0, x0, x2)
+	addAssign(t0, x4)
+	add(t3, s0, t0)
+	subAssign(t3, s1)
+	z5.set(t3)
+
+	// result
+	a[0][0].set(z0)
+	a[0][1].set(z1)
+	a[0][2].set(z2)
+	a[1][0].set(z3)
+	a[1][1].set(z4)
+	a[1][2].set(z5)
+}
+
+// TODO: zexe uses different name which is mul by 034
+// lets say {a,b} \in Fp6 where
+// in sparse multiplication of a*b
+// a = (a00 + a01*u + a02*u^2) + (a10 + a11*u + a12*u^2)
+// b = (b00 + 0 + 0) + (0 + b11*u + b12*u^2)
+func (e *fp6) mulBy045Assign(a *fe6, c0, c1, c2 *fe) {
+	z0, z1, z2, z3, z4, z5 := &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}
+	z0.set(&a[0][0])
+	z1.set(&a[0][1])
+	z2.set(&a[0][2])
+	z3.set(&a[1][0])
+	z4.set(&a[1][1])
+	z5.set(&a[1][2])
+
+	x0, x4, x5 := &fe{}, &fe{}, &fe{}
+	x0.set(c0)
+	x4.set(c1)
+	x5.set(c2)
+
+	t0, t1, t2, t3, t4, t5, t6, t7, t8 := &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}
+
+	mul(t6, x4, nonResidue1)
+	mul(t7, x5, nonResidue1)
+
+	mul(t0, x0, z0)
+	mul(t8, t6, z4)
+	addAssign(t0, t8)
+	mul(t8, t7, z3)
+	addAssign(t0, t8)
+
+	mul(t1, x0, z1)
+	mul(t8, t6, z5)
+	addAssign(t1, t8)
+	mul(t8, t7, z4)
+	addAssign(t1, t8)
+
+	mul(t2, x0, z2)
+	mul(t8, x4, z3)
+	addAssign(t2, t8)
+	mul(t8, t7, z1)
+
+	mul(t3, x0, z3)
+	mul(t8, t6, z2)
+	addAssign(t3, t8)
+	mul(t8, t7, z1)
+	addAssign(t3, t8)
+
+	mul(t4, x0, z4)
+	mul(t8, x4, z0)
+	addAssign(t4, t8)
+	mul(t8, t7, z2)
+	addAssign(t4, t8)
+
+	mul(t5, x0, z5)
+	mul(t8, x4, z1)
+	addAssign(t5, t8)
+	mul(t8, x5, z0)
+	addAssign(t5, t8)
+
+	a[0][0].set(z0)
+	a[0][1].set(z1)
+	a[0][2].set(z2)
+	a[1][0].set(z3)
+	a[1][1].set(z4)
+	a[1][2].set(z5)
+}

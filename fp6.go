@@ -118,7 +118,6 @@ func (e *fp6) conjugate(c, a *fe6) {
 	// c0 = a0
 	// c1 = -a1
 	fp3 := e.fp3
-	c.set(a)
 	c[0].set(&a[0])
 	fp3.neg(&c[1], &a[1])
 }
@@ -127,23 +126,20 @@ func (e *fp6) mul(c, a, b *fe6) {
 	// Multiplication and Squaring on Pairing-Friendly Fields
 	// Karatsuba multiplication algorithm
 	// https://eprint.iacr.org/2006/471
-	//
-	// v0 = a0b0
-	// c0 = v0 + αv1 = v0 - 4v1
-	// c1 = (a0 + a1)(b0 + b1) - v0 - v1
+
 	fp3, t := e.fp3, e.t
 
 	fp3.mul(t[1], &a[0], &b[0]) // v0 = a0b0
 	fp3.mul(t[2], &a[1], &b[1]) // v1 = a1b1
 
-	fp3.ladd(t[0], &a[0], &a[1]) // a0 + a1
-	fp3.ladd(t[3], &b[0], &b[1]) // b0 + b1
-	fp3.mul(t[0], t[0], t[3])    // (a0 + a1)(b0 + b1)
-	fp3.sub(t[0], t[0], t[1])    // (a0 + a1)(b0 + b1) - v0
-	fp3.sub(&c[1], t[0], t[2])   // c1 = (a0 + a1)(b0 + b1) - v0 - v1
+	fp3.add(t[0], &a[0], &a[1]) // a0 + a1
+	fp3.add(t[3], &b[0], &b[1]) // b0 + b1
+	fp3.mul(t[0], t[0], t[3])   // (a0 + a1)(b0 + b1)
+	fp3.sub(t[0], t[0], t[1])   // (a0 + a1)(b0 + b1) - v0
+	fp3.sub(&c[1], t[0], t[2])  // c1 = (a0 + a1)(b0 + b1) - v0 - v1
 
 	fp3.double(t[2], t[2])     //
-	fp3.double(t[2], t[2])     // -4v1
+	fp3.double(t[2], t[2])     // 4v1
 	fp3.sub(&c[0], t[1], t[2]) // c0 = v0 - 4v1
 }
 
@@ -205,10 +201,7 @@ func (e *fp6) squareComplex(c, a *fe6) {
 func (e *fp6) inverse(c, a *fe6) {
 	// Guide to Pairing Based Cryptography
 	// Algorithm 5.19
-	//
-	// v = (a0^2 - βa1^2)^-1 =  (a0^2 + 4a1^2)^-1
-	// c0 = a0v
-	// c1 = a1v
+
 	fp3, t := e.fp3, e.t
 
 	fp3.square(t[0], &a[0]) // a0^2
@@ -217,11 +210,11 @@ func (e *fp6) inverse(c, a *fe6) {
 	fp3.double(t[2], t[1])
 	fp3.double(t[2], t[2]) // 4a1^2
 
-	fp3.add(t[0], t[0], t[2]) //
-	fp3.inverse(t[1], t[0])   // v = a0^2 + 4a1^2
+	fp3.add(t[0], t[0], t[2]) // v = a0^2 + 4a1^2
+	fp3.inverse(t[1], t[0])   // v = v^-1
 
-	fp3.mul(&c[0], t[1], &a[0]) // a0v1
-	fp3.mul(t[1], t[1], &a[1])  // a1v1
+	fp3.mul(&c[0], t[1], &a[0]) // a0v
+	fp3.mul(t[1], t[1], &a[1])  // a1v
 	fp3.neg(&c[1], t[1])
 }
 

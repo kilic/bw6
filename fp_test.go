@@ -7,20 +7,6 @@ import (
 	"testing"
 )
 
-// func toLimbs(a *fe, desc ...interface{}) {
-// 	fmt.Println(desc...)
-// 	for i := 0; i < 12; i++ {
-// 		fmt.Printf("%#16.16x,\n", a[i])
-// 	}
-// }
-
-// func debugFp3(c *fe3, desc ...interface{}) {
-// 	fmt.Println(desc...)
-// 	fmt.Printf("c0: %#x\n", toBytes(&c[0]))
-// 	fmt.Printf("c1: %#x\n", toBytes(&c[1]))
-// 	fmt.Printf("c2: %#x\n", toBytes(&c[2]))
-// }
-
 func TestFpSerialization(t *testing.T) {
 	t.Run("zero", func(t *testing.T) {
 		in := make([]byte, FE_BYTE_SIZE)

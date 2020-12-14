@@ -3,7 +3,7 @@ package bw6
 const N_LIMBS = 12
 const FE_BYTE_SIZE = 96
 const FE_BIT_SIZE = 761
-const TWELWE_WORD_BYTE_SIZE = 768
+const TWELWE_WORD_BIT_SIZE = 768
 
 /*
 	Base field
@@ -224,9 +224,6 @@ var g1One = PointG1{
 	*new(fe).set(r1),
 }
 
-// G1 generator
-// x = 0x01075b020ea190c8b277ce98a477beaee6a0cfb7551b27f0ee05c54b85f56fc779017ffac15520ac11dbfcd294c2e746a17a54ce47729b905bd71fa0c9ea097103758f9a280ca27f6750dd0356133e82055928aca6af603f4088f3af66e5b43d
-// y = 0x0017c3357761369f8179eb10e4b6d2dc26b7cf9acec2181c81a78e2753ffe3160a1d86c80b95a59c94c97eb733293fef64f293dbd2c712b88906c170ffa823003ea96fcd504affc758aa2d3a3c5a02a591ec0594f9eac689eb70a16728c73b61
 var g2One = PointG2{
 	fe{
 		0x3d902a84cd9f4f78,

@@ -138,9 +138,8 @@ func (e *fp6) mul(c, a, b *fe6) {
 	fp3.sub(t[0], t[0], t[1])   // (a0 + a1)(b0 + b1) - v0
 	fp3.sub(&c[1], t[0], t[2])  // c1 = (a0 + a1)(b0 + b1) - v0 - v1
 
-	fp3.double(t[2], t[2])     //
-	fp3.double(t[2], t[2])     // 4v1
-	fp3.sub(&c[0], t[1], t[2]) // c0 = v0 - 4v1
+	fp3.mulByNonResidue(t[2], t[2])
+	fp3.add(&c[0], t[1], t[2]) // c0 = v0 - ßv1
 }
 
 func (e *fp6) square(c, a *fe6) {
@@ -154,17 +153,15 @@ func (e *fp6) squareKaratsuba(c, a *fe6) {
 	//
 	// v0 = a0^2
 	// v1 = a1^2
-	// c0 = v0 + αv1 = v0 - 4v1
+	// c0 = v0 + αv1 = v0 - ßv1
 	// c1 = (a0 + a1)^2 - v0 - v1
 
 	fp3, t := e.fp3, e.t
 	fp3.square(t[0], &a[0]) // v0 = a0^2
 	fp3.square(t[1], &a[1]) // v1 = a1^2
 
-	fp3.double(t[2], t[1]) //
-	fp3.double(t[2], t[2]) // 4v1
-
-	fp3.sub(t[3], t[0], t[2]) // c0 = v0 - 4v1
+	fp3.mulByNonResidue(t[2], t[2])
+	fp3.sub(t[3], t[0], t[2]) // c0 = v0 - ßv1
 
 	fp3.ladd(t[2], &a[0], &a[1]) // a0 + a1
 	fp3.square(t[2], t[2])       // (a0 + a1)^2
@@ -182,20 +179,21 @@ func (e *fp6) squareComplex(c, a *fe6) {
 	// https://eprint.iacr.org/2006/471
 	//
 	// v0 = a0a1
-	// c0 = (a0 + a1)(a0 + αa1) - v0 - αv0 = (a0 + a1)(a0 - 4a1) + 3a1a0
+	// c0 = (a0 + a1)(a0 + ßa1) - v0 - ßv0
 	// c1 = 2v0
-
 	fp3, t := e.fp3, e.t
-	fp3.double(t[0], &a[1])      // 2a1
-	fp3.double(t[0], t[0])       // 4a1
-	fp3.mul(t[1], &a[0], &a[1])  // a0a1
-	fp3.double(t[2], t[1])       // 2a0a1
-	fp3.ladd(t[3], &a[0], &a[1]) // a0 + a1
-	c[1].set(t[2])               // c1 = 2a0a1
-	fp3.add(t[2], t[2], t[1])    // 3a0a1
-	fp3.sub(t[0], &a[0], t[0])   // (a0 - 4a1)
-	fp3.mul(t[0], t[0], t[3])    // (a0 + a1)(a0 - 4a1)
-	fp3.add(&c[0], t[2], t[0])   // (a0 + a1)(a0 - 4a1) + 3a0a1
+	fp3.mulByNonResidue(t[0], &a[1]) // ßa1
+	fp3.mul(t[1], &a[0], &a[1])      // v0 = a0a1
+	fp3.mulByNonResidue(t[2], t[1])  // ßv0
+
+	fp3.add(t[0], t[0], &a[0]) // a0 + ßa1
+	fp3.add(t[2], t[2], t[1])  // v0 + ßv0
+
+	fp3.add(t[3], &a[0], &a[1]) // a0 + a1
+	fp3.mul(t[0], t[0], t[3])   // (a0 + a1)(a0 + ßa1)
+
+	fp3.sub(&c[0], t[0], t[2]) // (a0 + a1)(a0 + ßa1) - v0 - ßv0
+	fp3.double(&c[1], t[1])    // 2v0
 }
 
 func (e *fp6) inverse(c, a *fe6) {
@@ -207,10 +205,8 @@ func (e *fp6) inverse(c, a *fe6) {
 	fp3.square(t[0], &a[0]) // a0^2
 	fp3.square(t[1], &a[1]) // a1^2
 
-	fp3.double(t[2], t[1])
-	fp3.double(t[2], t[2]) // 4a1^2
-
-	fp3.add(t[0], t[0], t[2]) // v = a0^2 + 4a1^2
+	fp3.mulByNonResidue(t[2], t[1])
+	fp3.sub(t[0], t[0], t[2]) // v = a0^2 + ßa1^2
 	fp3.inverse(t[1], t[0])   // v = v^-1
 
 	fp3.mul(&c[0], t[1], &a[0]) // a0v
@@ -232,15 +228,6 @@ func (e *fp6) exp(c, a *fe6, s *big.Int) {
 func (e *fp6) frobeniusMap(c, a *fe6, power int) {
 	fp3 := e.fp3
 	fp3.frobeniusMap(&c[0], &a[0], power)
-	mul(&c[1][0], &a[1][0], &frobeniusCoeffs6[power%6][0])
-	mul(&c[1][1], &a[1][1], &frobeniusCoeffs6[power%6][1])
-	mul(&c[1][2], &a[1][2], &frobeniusCoeffs6[power%6][2])
-}
-
-func (e *fp6) frobeniusMap1(c, a *fe6, power int) {
-	fp3 := e.fp3
-	fp3.frobeniusMap(&c[0], &a[0], power)
-	neg(&c[1][0], &a[1][0])
-	mul(&c[1][1], &a[1][1], &frobeniusCoeffs6[1][1])
-	mul(&c[1][2], &a[1][2], &frobeniusCoeffs6[1][2])
+	fp3.frobeniusMap(&c[1], &a[1], power)
+	fp3.mulByBaseField(&c[1], &a[1], &frobeniusCoeffs6[power%6])
 }

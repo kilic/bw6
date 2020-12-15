@@ -129,6 +129,12 @@ func (e *fp3) conjugate(c, a *fe3) {
 	c[2].set(&a[2])
 }
 
+func (e *fp3) mulByBaseField(c, a *fe3, z *fe) {
+	mul(&c[0], &a[0], z)
+	mul(&c[1], &a[1], z)
+	mul(&c[2], &a[2], z)
+}
+
 func (e *fp3) mul(c, a, b *fe3) {
 	// Guide to Pairing Based Cryptography
 	// Algorithm 5.21
@@ -246,6 +252,17 @@ func (e *fp3) inverse(c, a *fe3) {
 	mul(&c[0], t[0], t[4]) // c0 = AF
 	mul(&c[1], t[2], t[4]) // c1 = BF
 	mul(&c[2], t[1], t[4]) // c2 = CF
+}
+
+func (e *fp3) mulByNonResidue(c, a *fe3) {
+	t := e.t
+	t[0].set(&a[2])
+	c[2].set(&a[1])
+	c[1].set(&a[0])
+	doubleAssign(t[0])
+	doubleAssign(t[0])
+	neg(t[0], t[0])
+	c[0].set(t[0])
 }
 
 func (e *fp3) frobeniusMap(c, a *fe3, power int) {

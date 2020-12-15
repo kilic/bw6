@@ -229,5 +229,5 @@ func (e *fp6) frobeniusMap(c, a *fe6, power int) {
 	fp3 := e.fp3
 	fp3.frobeniusMap(&c[0], &a[0], power)
 	fp3.frobeniusMap(&c[1], &a[1], power)
-	fp3.mulByBaseField(&c[1], &a[1], &frobeniusCoeffs6[power%6])
+	fp3.mulByBaseField(&c[1], &c[1], &frobeniusCoeffs6[power%6])
 }

@@ -63,14 +63,14 @@ func (g *G2) Q() *big.Int {
 // Input string is expected to be equal to 192 bytes and concatenation of x and y cooridanates.
 // (0, 0) is considered as infinity.
 func (g *G2) FromBytes(in []byte) (*PointG2, error) {
-	if len(in) != 2*FE_BYTE_SIZE {
+	if len(in) != 2*fpByteSize {
 		return nil, errors.New("input string should be 192 bytes")
 	}
-	x, err := fromBytes(in[:FE_BYTE_SIZE])
+	x, err := fromBytes(in[:fpByteSize])
 	if err != nil {
 		return nil, err
 	}
-	y, err := fromBytes(in[FE_BYTE_SIZE:])
+	y, err := fromBytes(in[fpByteSize:])
 	if err != nil {
 		return nil, err
 	}
@@ -89,13 +89,13 @@ func (g *G2) FromBytes(in []byte) (*PointG2, error) {
 // ToBytes serializes a point into bytes in uncompressed form.
 // It returns (0, 0) if point is infinity.
 func (g *G2) ToBytes(p *PointG2) []byte {
-	out := make([]byte, 2*FE_BYTE_SIZE)
+	out := make([]byte, 2*fpByteSize)
 	if g.IsZero(p) {
 		return out
 	}
 	g.Affine(p)
-	copy(out[:FE_BYTE_SIZE], toBytes(&p[0]))
-	copy(out[FE_BYTE_SIZE:], toBytes(&p[1]))
+	copy(out[:fpByteSize], toBytes(&p[0]))
+	copy(out[fpByteSize:], toBytes(&p[1]))
 	return out
 }
 

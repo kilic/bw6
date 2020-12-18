@@ -1,9 +1,9 @@
 package bw6
 
-const N_LIMBS = 12
-const FE_BYTE_SIZE = 96
-const FE_BIT_SIZE = 761
-const TWELWE_WORD_BIT_SIZE = 768
+const fpNumberOfLimbs = 12
+const fpByteSize = 96
+const fpBitSize = 761
+const twelveWordBitSize = 768
 
 /*
 	Base field

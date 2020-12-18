@@ -27,18 +27,18 @@ func newFp3() *fp3 {
 }
 
 func (e *fp3) fromBytes(in []byte) (*fe3, error) {
-	if len(in) != 3*FE_BYTE_SIZE {
+	if len(in) != 3*fpByteSize {
 		return nil, errors.New("input string should be larger than 96 bytes")
 	}
-	c0, err := fromBytes(in[:FE_BYTE_SIZE])
+	c0, err := fromBytes(in[:fpByteSize])
 	if err != nil {
 		return nil, err
 	}
-	c1, err := fromBytes(in[FE_BYTE_SIZE : 2*FE_BYTE_SIZE])
+	c1, err := fromBytes(in[fpByteSize : 2*fpByteSize])
 	if err != nil {
 		return nil, err
 	}
-	c2, err := fromBytes(in[2*FE_BYTE_SIZE : 3*FE_BYTE_SIZE])
+	c2, err := fromBytes(in[2*fpByteSize : 3*fpByteSize])
 	if err != nil {
 		return nil, err
 	}
@@ -46,10 +46,10 @@ func (e *fp3) fromBytes(in []byte) (*fe3, error) {
 }
 
 func (e *fp3) toBytes(a *fe3) []byte {
-	out := make([]byte, 3*FE_BYTE_SIZE)
-	copy(out[:FE_BYTE_SIZE], toBytes(&a[0]))
-	copy(out[FE_BYTE_SIZE:2*FE_BYTE_SIZE], toBytes(&a[1]))
-	copy(out[2*FE_BYTE_SIZE:3*FE_BYTE_SIZE], toBytes(&a[2]))
+	out := make([]byte, 3*fpByteSize)
+	copy(out[:fpByteSize], toBytes(&a[0]))
+	copy(out[fpByteSize:2*fpByteSize], toBytes(&a[1]))
+	copy(out[2*fpByteSize:3*fpByteSize], toBytes(&a[2]))
 	return out
 }
 

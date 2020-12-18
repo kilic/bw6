@@ -8,20 +8,20 @@ import (
 	"math/big"
 )
 
-type fe /****			***/ [N_LIMBS]uint64
+type fe /****			***/ [fpNumberOfLimbs]uint64
 type fe3 /***			***/ [3]fe
 type fe6 /***			***/ [2]fe3
 
 func (e *fe) setBytes(in []byte) *fe {
 	l := len(in)
-	if l >= FE_BYTE_SIZE {
-		l = FE_BYTE_SIZE
+	if l >= fpByteSize {
+		l = fpByteSize
 	}
-	padded := make([]byte, FE_BYTE_SIZE)
-	copy(padded[FE_BYTE_SIZE-l:], in[:])
+	padded := make([]byte, fpByteSize)
+	copy(padded[fpByteSize-l:], in[:])
 	var a int
-	for i := 0; i < N_LIMBS; i++ {
-		a = FE_BYTE_SIZE - i*8
+	for i := 0; i < fpNumberOfLimbs; i++ {
+		a = fpByteSize - i*8
 		e[i] = uint64(padded[a-1]) | uint64(padded[a-2])<<8 |
 			uint64(padded[a-3])<<16 | uint64(padded[a-4])<<24 |
 			uint64(padded[a-5])<<32 | uint64(padded[a-6])<<40 |
@@ -62,11 +62,11 @@ func (e *fe) set(e2 *fe) *fe {
 }
 
 func (e *fe) bytes() []byte {
-	out := make([]byte, FE_BYTE_SIZE)
+	out := make([]byte, fpByteSize)
 
 	var a int
-	for i := 0; i < N_LIMBS; i++ {
-		a = FE_BYTE_SIZE - i*8
+	for i := 0; i < fpNumberOfLimbs; i++ {
+		a = fpByteSize - i*8
 		out[a-1] = byte(e[i])
 		out[a-2] = byte(e[i] >> 8)
 		out[a-3] = byte(e[i] >> 16)
@@ -84,7 +84,7 @@ func (e *fe) big() *big.Int {
 }
 
 func (e *fe) string() (s string) {
-	for i := N_LIMBS - 1; i >= 0; i-- {
+	for i := fpNumberOfLimbs - 1; i >= 0; i-- {
 		s = fmt.Sprintf("%s%16.16x", s, e[i])
 	}
 	return "0x" + s
@@ -141,7 +141,7 @@ func (e *fe) isOne() bool {
 }
 
 func (e *fe) cmp(e2 *fe) int {
-	for i := N_LIMBS - 1; i >= 0; i-- {
+	for i := fpNumberOfLimbs - 1; i >= 0; i-- {
 		if e[i] > e2[i] {
 			return 1
 		} else if e[i] < e2[i] {

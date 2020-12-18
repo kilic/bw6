@@ -7,7 +7,7 @@ import (
 
 func fromBytes(in []byte) (*fe, error) {
 	fe := &fe{}
-	if len(in) != FE_BYTE_SIZE {
+	if len(in) != fpByteSize {
 		return nil, errors.New("input string should be equal to 96 bytes")
 	}
 	fe.setBytes(in)
@@ -89,7 +89,7 @@ func inverse(inv, e *fe) {
 	var z uint64
 	var found = false
 	// Phase 1
-	for i := 0; i < TWELWE_WORD_BIT_SIZE*2; i++ {
+	for i := 0; i < twelveWordBitSize*2; i++ {
 		if v.isZero() {
 			found = true
 			break
@@ -119,7 +119,7 @@ func inverse(inv, e *fe) {
 		return
 	}
 
-	if k < FE_BIT_SIZE || k > FE_BIT_SIZE+TWELWE_WORD_BIT_SIZE {
+	if k < fpBitSize || k > fpBitSize+twelveWordBitSize {
 		inv.zero()
 		return
 	}
@@ -131,7 +131,7 @@ func inverse(inv, e *fe) {
 	lsubAssign(u, r)
 
 	// Phase 2
-	for i := k; i < TWELWE_WORD_BIT_SIZE*2; i++ {
+	for i := k; i < twelveWordBitSize*2; i++ {
 		double(u, u)
 	}
 	inv.set(u)

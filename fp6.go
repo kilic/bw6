@@ -31,15 +31,15 @@ func newFp6(f *fp3) *fp6 {
 }
 
 func (e *fp6) fromBytes(in []byte) (*fe6, error) {
-	if len(in) != 6*FE_BYTE_SIZE {
+	if len(in) != 6*fpByteSize {
 		return nil, errors.New("input string should be larger than 96 bytes")
 	}
 	fp3 := e.fp3
-	c0, err := fp3.fromBytes(in[:3*FE_BYTE_SIZE])
+	c0, err := fp3.fromBytes(in[:3*fpByteSize])
 	if err != nil {
 		return nil, err
 	}
-	c1, err := fp3.fromBytes(in[3*FE_BYTE_SIZE:])
+	c1, err := fp3.fromBytes(in[3*fpByteSize:])
 	if err != nil {
 		return nil, err
 	}
@@ -47,10 +47,10 @@ func (e *fp6) fromBytes(in []byte) (*fe6, error) {
 }
 
 func (e *fp6) toBytes(a *fe6) []byte {
-	out := make([]byte, 6*FE_BYTE_SIZE)
+	out := make([]byte, 6*fpByteSize)
 	fp3 := e.fp3
-	copy(out[:3*FE_BYTE_SIZE], fp3.toBytes(&a[0]))
-	copy(out[3*FE_BYTE_SIZE:], fp3.toBytes(&a[1]))
+	copy(out[:3*fpByteSize], fp3.toBytes(&a[0]))
+	copy(out[3*fpByteSize:], fp3.toBytes(&a[1]))
 	return out
 }
 

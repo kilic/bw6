@@ -46,6 +46,44 @@ func TestFieldElementEquality(t *testing.T) {
 	if a.equal(b) {
 		t.Fatal("a != a + 1")
 	}
+	// fe3
+	zero3 := new(fe3).zero()
+	if !zero3.equal(zero3) {
+		t.Fatal("0 == 0")
+	}
+	one3 := new(fe3).one()
+	if !one3.equal(one3) {
+		t.Fatal("1 == 1")
+	}
+	a3, _ := new(fe3).rand(rand.Reader)
+	if !a3.equal(a3) {
+		t.Fatal("a == a")
+	}
+	b3 := new(fe3)
+	fp3 := newFp3()
+	fp3.add(b3, a3, one3)
+	if a3.equal(b3) {
+		t.Fatal("a != a + 1")
+	}
+	// fe6
+	zero6 := new(fe6).zero()
+	if !zero6.equal(zero6) {
+		t.Fatal("0 == 0")
+	}
+	one6 := new(fe6).one()
+	if !one6.equal(one6) {
+		t.Fatal("1 == 1")
+	}
+	a6, _ := new(fe6).rand(rand.Reader)
+	if !a6.equal(a6) {
+		t.Fatal("a == a")
+	}
+	b6 := new(fe6)
+	fp6 := newFp6(fp3)
+	fp6.add(b6, a6, one6)
+	if a6.equal(b6) {
+		t.Fatal("a != a + 1")
+	}
 }
 
 func TestFieldElementHelpers(t *testing.T) {
@@ -72,6 +110,24 @@ func TestFieldElementHelpers(t *testing.T) {
 	if even.isOdd() {
 		t.Fatal("2 must not be odd")
 	}
+	// fe2
+	zero3 := new(fe3).zero()
+	if !zero3.isZero() {
+		t.Fatal("'zero' is not zero, 3")
+	}
+	one3 := new(fe3).one()
+	if !one3.isOne() {
+		t.Fatal("'one' is not one, 3")
+	}
+	// fe6
+	zero6 := new(fe6).zero()
+	if !zero6.isZero() {
+		t.Fatal("'zero' is not zero, 6")
+	}
+	one6 := new(fe6).one()
+	if !one6.isOne() {
+		t.Fatal("'one' is not one, 6")
+	}
 }
 
 func TestFieldElementSerialization(t *testing.T) {
@@ -79,10 +135,10 @@ func TestFieldElementSerialization(t *testing.T) {
 		in := make([]byte, fpByteSize)
 		fe := new(fe).setBytes(in)
 		if !fe.isZero() {
-			t.Fatal("bad serialization")
+			t.Fatal("serialization failed")
 		}
 		if !bytes.Equal(in, fe.bytes()) {
-			t.Fatal("bad serialization")
+			t.Fatal("serialization failed")
 		}
 	})
 	t.Run("bytes", func(t *testing.T) {
@@ -90,7 +146,7 @@ func TestFieldElementSerialization(t *testing.T) {
 			a, _ := new(fe).rand(rand.Reader)
 			b := new(fe).setBytes(a.bytes())
 			if !a.equal(b) {
-				t.Fatal("bad serialization")
+				t.Fatal("serialization failed")
 			}
 		}
 	})
@@ -99,7 +155,7 @@ func TestFieldElementSerialization(t *testing.T) {
 			a, _ := new(fe).rand(rand.Reader)
 			b := new(fe).setBig(a.big())
 			if !a.equal(b) {
-				t.Fatal("bad encoding or decoding")
+				t.Fatal("encoding or decoding failed")
 			}
 		}
 	})
@@ -111,7 +167,7 @@ func TestFieldElementSerialization(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !a.equal(b) {
-				t.Fatal("bad encoding or decoding")
+				t.Fatal("encoding or decoding failed")
 			}
 		}
 	})
@@ -122,24 +178,24 @@ func TestFieldElementByteInputs(t *testing.T) {
 	in := make([]byte, 0)
 	a := new(fe).setBytes(in)
 	if !a.equal(zero) {
-		t.Fatal("bad serialization")
+		t.Fatal("serialization failed")
 	}
 	in = make([]byte, fpByteSize)
 	a = new(fe).setBytes(in)
 	if !a.equal(zero) {
-		t.Fatal("bad serialization")
+		t.Fatal("serialization failed")
 	}
 	in = make([]byte, fpByteSize+200)
 	a = new(fe).setBytes(in)
 	if !a.equal(zero) {
-		t.Fatal("bad serialization")
+		t.Fatal("serialization failed")
 	}
 	in = make([]byte, fpByteSize+1)
 	in[fpByteSize-1] = 1
 	normalOne := &fe{1}
 	a = new(fe).setBytes(in)
 	if !a.equal(normalOne) {
-		t.Fatal("bad serialization")
+		t.Fatal("serialization failed")
 	}
 }
 
@@ -147,6 +203,16 @@ func TestFieldElementCopy(t *testing.T) {
 	a, _ := new(fe).rand(rand.Reader)
 	b := new(fe).set(a)
 	if !a.equal(b) {
-		t.Fatal("bad copy, 1")
+		t.Fatal("copy failed")
+	}
+	a3, _ := new(fe3).rand(rand.Reader)
+	b3 := new(fe3).set(a3)
+	if !a3.equal(b3) {
+		t.Fatal("copy failed")
+	}
+	a6, _ := new(fe6).rand(rand.Reader)
+	b6 := new(fe6).set(a6)
+	if !a6.equal(b6) {
+		t.Fatal("copy failed")
 	}
 }

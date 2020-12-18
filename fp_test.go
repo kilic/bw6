@@ -15,10 +15,10 @@ func TestFpSerialization(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !fe.isZero() {
-			t.Fatal("bad serialization")
+			t.Fatal("serialization failed")
 		}
 		if !bytes.Equal(in, toBytes(fe)) {
-			t.Fatal("bad serialization")
+			t.Fatal("serialization failed")
 		}
 	})
 	t.Run("bytes", func(t *testing.T) {
@@ -29,7 +29,7 @@ func TestFpSerialization(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !a.equal(b) {
-				t.Fatal("bad serialization")
+				t.Fatal("serialization failed")
 			}
 		}
 	})
@@ -41,7 +41,7 @@ func TestFpSerialization(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !a.equal(b) {
-				t.Fatal("bad encoding or decoding")
+				t.Fatal("encoding or decoding failed")
 			}
 		}
 	})
@@ -53,7 +53,7 @@ func TestFpSerialization(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !a.equal(b) {
-				t.Fatal("bad encoding or decoding")
+				t.Fatal("encoding or decoding failed")
 			}
 		}
 	})
@@ -71,25 +71,25 @@ func TestFpAdditionCrossAgainstBigInt(t *testing.T) {
 		out_1 := c.bytes()
 		out_2 := padBytes(big_c.Add(big_a, big_b).Mod(big_c, modulus.big()).Bytes(), fpByteSize)
 		if !bytes.Equal(out_1, out_2) {
-			t.Fatal("cross test against big.Int is failed, add")
+			t.Fatal("cross test against big.Int is failed A")
 		}
 		double(c, a)
 		out_1 = c.bytes()
 		out_2 = padBytes(big_c.Add(big_a, big_a).Mod(big_c, modulus.big()).Bytes(), fpByteSize)
 		if !bytes.Equal(out_1, out_2) {
-			t.Fatal("cross test against big.Int is failed, double")
+			t.Fatal("cross test against big.Int is failed B")
 		}
 		sub(c, a, b)
 		out_1 = c.bytes()
 		out_2 = padBytes(big_c.Sub(big_a, big_b).Mod(big_c, modulus.big()).Bytes(), fpByteSize)
 		if !bytes.Equal(out_1, out_2) {
-			t.Fatal("cross test against big.Int is failed, sub")
+			t.Fatal("cross test against big.Int is failed C")
 		}
 		neg(c, a)
 		out_1 = c.bytes()
 		out_2 = padBytes(big_c.Neg(big_a).Mod(big_c, modulus.big()).Bytes(), fpByteSize)
 		if !bytes.Equal(out_1, out_2) {
-			t.Fatal("cross test against big.Int is failed, neg")
+			t.Fatal("cross test against big.Int is failed D")
 		}
 	}
 }
@@ -103,7 +103,7 @@ func TestFpAdditionCrossAgainstBigIntAssigned(t *testing.T) {
 		out_1 := a.bytes()
 		out_2 := padBytes(big_a.Add(big_a, big_b).Mod(big_a, modulus.big()).Bytes(), fpByteSize)
 		if !bytes.Equal(out_1, out_2) {
-			t.Fatal("cross test against big.Int is failed, add")
+			t.Fatal("cross test against big.Int is failed A")
 		}
 		a, _ = new(fe).rand(rand.Reader)
 		big_a = a.big()
@@ -111,7 +111,7 @@ func TestFpAdditionCrossAgainstBigIntAssigned(t *testing.T) {
 		out_1 = a.bytes()
 		out_2 = padBytes(big_a.Add(big_a, big_a).Mod(big_a, modulus.big()).Bytes(), fpByteSize)
 		if !bytes.Equal(out_1, out_2) {
-			t.Fatal("cross test against big.Int is failed, double")
+			t.Fatal("cross test against big.Int is failed B")
 		}
 		a, _ = new(fe).rand(rand.Reader)
 		b, _ = new(fe).rand(rand.Reader)
@@ -120,7 +120,7 @@ func TestFpAdditionCrossAgainstBigIntAssigned(t *testing.T) {
 		out_1 = a.bytes()
 		out_2 = padBytes(big_a.Sub(big_a, big_b).Mod(big_a, modulus.big()).Bytes(), fpByteSize)
 		if !bytes.Equal(out_1, out_2) {
-			t.Fatal("cross test against big.Int is failed, sub")
+			t.Fatal("cross test against big.Int is failed A")
 		}
 	}
 }
@@ -311,7 +311,7 @@ func TestFpMultiplicationCrossAgainstBigInt(t *testing.T) {
 		out_1 := toBytes(c)
 		out_2 := padBytes(big_c.Mul(big_a, big_b).Mod(big_c, modulus.big()).Bytes(), fpByteSize)
 		if !bytes.Equal(out_1, out_2) {
-			t.Fatal("cross test against big.Int is not satisfied")
+			t.Fatal("cross test against big.Int is failed")
 		}
 	}
 }
@@ -441,11 +441,11 @@ func TestFpSquareRoot(t *testing.T) {
 		aa, rr, r := &fe{}, &fe{}, &fe{}
 		square(aa, a)
 		if !sqrt(r, aa) {
-			t.Fatal("bad sqrt 1")
+			t.Fatal("sqrt failed")
 		}
 		square(rr, r)
 		if !rr.equal(aa) {
-			t.Fatal("bad sqrt 2")
+			t.Fatal("sqrt failed")
 		}
 	}
 }
@@ -476,49 +476,6 @@ func TestFpNonResidue(t *testing.T) {
 	}
 }
 
-func BenchmarkAdd(t *testing.B) {
-	a, _ := new(fe).rand(rand.Reader)
-	b, _ := new(fe).rand(rand.Reader)
-	c := new(fe)
-	t.ResetTimer()
-	for i := 0; i < t.N; i++ {
-		add(c, a, b)
-	}
-	_ = c
-}
-
-func BenchmarkDouble(t *testing.B) {
-	a, _ := new(fe).rand(rand.Reader)
-	c := new(fe)
-	t.ResetTimer()
-	for i := 0; i < t.N; i++ {
-		double(c, a)
-	}
-	_ = c
-}
-
-func BenchmarkSub(t *testing.B) {
-	a, _ := new(fe).rand(rand.Reader)
-	b, _ := new(fe).rand(rand.Reader)
-	c := new(fe)
-	t.ResetTimer()
-	for i := 0; i < t.N; i++ {
-		sub(c, a, b)
-	}
-	_ = c
-}
-
-func BenchmarkMul(t *testing.B) {
-	a, _ := new(fe).rand(rand.Reader)
-	b, _ := new(fe).rand(rand.Reader)
-	c := new(fe)
-	t.ResetTimer()
-	for i := 0; i < t.N; i++ {
-		mul(c, a, b)
-	}
-	_ = c
-}
-
 func TestFp3Serialization(t *testing.T) {
 	field := newFp3()
 	for i := 0; i < fuz; i++ {
@@ -528,7 +485,7 @@ func TestFp3Serialization(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !a.equal(b) {
-			t.Fatal("bad serialization")
+			t.Fatal("serialization failed")
 		}
 	}
 }
@@ -735,7 +692,7 @@ func TestFp6Serialization(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !a.equal(b) {
-			t.Fatal("bad serialization")
+			t.Fatal("serialization failed")
 		}
 	}
 }
@@ -1003,4 +960,57 @@ func TestFrobeniusMapping6(t *testing.T) {
 			}
 		}
 	}
+}
+
+func BenchmarkAdd(t *testing.B) {
+	a, _ := new(fe).rand(rand.Reader)
+	b, _ := new(fe).rand(rand.Reader)
+	c := new(fe)
+	t.ResetTimer()
+	for i := 0; i < t.N; i++ {
+		add(c, a, b)
+	}
+	_ = c
+}
+
+func BenchmarkDouble(t *testing.B) {
+	a, _ := new(fe).rand(rand.Reader)
+	c := new(fe)
+	t.ResetTimer()
+	for i := 0; i < t.N; i++ {
+		double(c, a)
+	}
+	_ = c
+}
+
+func BenchmarkSub(t *testing.B) {
+	a, _ := new(fe).rand(rand.Reader)
+	b, _ := new(fe).rand(rand.Reader)
+	c := new(fe)
+	t.ResetTimer()
+	for i := 0; i < t.N; i++ {
+		sub(c, a, b)
+	}
+	_ = c
+}
+
+func BenchmarkMul(t *testing.B) {
+	a, _ := new(fe).rand(rand.Reader)
+	b, _ := new(fe).rand(rand.Reader)
+	c := new(fe)
+	t.ResetTimer()
+	for i := 0; i < t.N; i++ {
+		mul(c, a, b)
+	}
+	_ = c
+}
+
+func BenchmarkInv(t *testing.B) {
+	a, _ := new(fe).rand(rand.Reader)
+	c := new(fe)
+	t.ResetTimer()
+	for i := 0; i < t.N; i++ {
+		inverse(c, a)
+	}
+	_ = c
 }

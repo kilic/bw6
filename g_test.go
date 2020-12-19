@@ -423,3 +423,30 @@ func BenchmarkG1MulGLV(t *testing.B) {
 		})
 	}
 }
+
+func BenchmarkG1MultiExp(t *testing.B) {
+	g := NewG()
+	v := func(n int) ([]*Point, []*big.Int) {
+		bases := make([]*Point, n)
+		scalars := make([]*big.Int, n)
+		var err error
+		for i := 0; i < n; i++ {
+			scalars[i] = randScalar(q)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bases[i] = g.randG1Affine()
+		}
+		return bases, scalars
+	}
+	for _, i := range []int{1, 2, 10, 100, 1000} {
+		t.Run(fmt.Sprint(i), func(t *testing.B) {
+			bases, scalars := v(i)
+			result := g.New()
+			t.ResetTimer()
+			for i := 0; i < t.N; i++ {
+				_, _ = g.MultiExp(result, bases, scalars)
+			}
+		})
+	}
+}

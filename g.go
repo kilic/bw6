@@ -11,6 +11,7 @@ import (
 type Point [3]fe
 
 var wnafMulWindow uint = 6
+var glvMulWindow uint = 4
 
 // Set sets the point p2 to p
 func (p *Point) Set(p2 *Point) *Point {
@@ -172,7 +173,7 @@ func (g *G) Equal(p1, p2 *Point) bool {
 // InCorrectSubgroup checks whether given point is in correct subgroup.
 func (g *G) InCorrectSubgroup(p *Point) bool {
 	tmp := &Point{}
-	g.MulScalar(tmp, p, q)
+	g.mulScalar(tmp, p, q)
 	return g.IsZero(tmp)
 }
 
@@ -408,9 +409,14 @@ func (g *G) Neg(r, p *Point) *Point {
 	return r
 }
 
-// MulScalar multiplies a point by given scalar value in big.Int and assigns the result to point at first argument.
-func (g *G) MulScalar(r, p *Point, e *big.Int) *Point {
-	return g.wnafMul(r, p, e)
+// MulScalar multiplies a G1 point by given scalar value in big.Int and assigns the result to point at first argument.
+func (g *G) MulScalarG1(r, p *Point, e *big.Int) *Point {
+	return g.glvMulG1(r, p, e)
+}
+
+// MulScalarG2 multiplies a G2 point by given scalar value in big.Int and assigns the result to point at first argument.
+func (g *G) MulScalarG2(r, p *Point, e *big.Int) *Point {
+	return g.glvMulG2(r, p, e)
 }
 
 func (g *G) mulScalar(r, p *Point, e *big.Int) *Point {
@@ -464,6 +470,78 @@ func (g *G) _wnafMul(r, p *Point, wnaf nafNumber) *Point {
 		}
 	}
 	return r.Set(q)
+}
+
+func (g *G) glvMulG1(r, p *Point, e *big.Int) *Point {
+	return g.glvMul(r, p, new(glvVector).new(e), g.glvEndomorphismG1)
+}
+
+func (g *G) glvMulG2(r, p *Point, e *big.Int) *Point {
+	return g.glvMul(r, p, new(glvVector).new(e), g.glvEndomorphismG2)
+}
+
+func (g *G) glvMul(r, p0 *Point, v *glvVector, endoFn func(r, p *Point)) *Point {
+
+	w := glvMulWindow
+	l := 1 << (w - 1)
+
+	// prepare tables
+	// tableK1 = {P, 3P, 5P, ...}
+	// tableK2 = {λP, 3λP, 5λP, ...}
+	tableK1, tableK2 := make([]*Point, l), make([]*Point, l)
+	double := g.New()
+	g.Double(double, p0)
+	g.affine(double, double)
+	tableK1[0] = new(Point)
+	tableK1[0].Set(p0)
+	for i := 1; i < l; i++ {
+		tableK1[i] = new(Point)
+		g.AddMixed(tableK1[i], tableK1[i-1], double)
+	}
+	g.AffineBatch(tableK1)
+	for i := 0; i < l; i++ {
+		tableK2[i] = new(Point)
+		endoFn(tableK2[i], tableK1[i])
+	}
+
+	// recode small scalars
+	naf1, naf2 := v.wnaf(w)
+	lenNAF1, lenNAF2 := len(naf1), len(naf2)
+	lenNAF := lenNAF1
+	if lenNAF2 > lenNAF {
+		lenNAF = lenNAF2
+	}
+
+	acc, p1 := g.New(), g.New()
+
+	// function for naf addition
+	add := func(table []*Point, naf int) {
+		if naf != 0 {
+			nafAbs := naf
+			if nafAbs < 0 {
+				nafAbs = -nafAbs
+			}
+			p1.Set(table[nafAbs>>1])
+			if naf < 0 {
+				g.Neg(p1, p1)
+			}
+			g.AddMixed(acc, acc, p1)
+		}
+	}
+
+	// sliding
+	for i := lenNAF - 1; i >= 0; i-- {
+		if i < lenNAF1 {
+			add(tableK1, naf1[i])
+		}
+		if i < lenNAF2 {
+			add(tableK2, naf2[i])
+		}
+		if i != 0 {
+			g.Double(acc, acc)
+		}
+	}
+	return r.Set(acc)
 }
 
 // ClearG1Cofactor maps given a G1 point to correct subgroup

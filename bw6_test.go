@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"flag"
-	"fmt"
 	"math/big"
 	"os"
 	"testing"
@@ -34,9 +33,4 @@ func randScalar(max *big.Int) *big.Int {
 		panic(errors.New(""))
 	}
 	return a
-}
-
-func TestSome(t *testing.T) {
-
-	fmt.Println(q.BitLen())
 }

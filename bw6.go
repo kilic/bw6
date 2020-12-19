@@ -5,6 +5,7 @@ const fpByteSize = 96
 const fpBitSize = 761
 const twelveWordBitSize = 768
 const frBitSize = 377
+const sixWordBitSize = 384
 
 // Base field
 // p = 0x122e824fb83ce0ad187c94004faff3eb926186a81d14688528275ef8087be41707ba638e584e91903cebaff25b423048689c8ed12f9fd9071dcd3dc73ebff2e98a116c25667a8f8160cf8aeeaf0a437e6913e6870000082f49d00000000008b

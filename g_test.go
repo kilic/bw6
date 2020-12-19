@@ -185,59 +185,121 @@ func TestGroupAdditiveProperties(t *testing.T) {
 	}
 }
 
-func TestGroupMultiplicativeProperties(t *testing.T) {
+func TestG1MultiplicativeProperties(t *testing.T) {
 	g := NewG()
 	t0, t1 := g.New(), g.New()
 	zero := g.Zero()
 	for i := 0; i < fuz; i++ {
-		a := g.randG1()
+		a := g.randG1Affine()
 		s1, s2, s3 := randScalar(q), randScalar(q), randScalar(q)
 		sone := big.NewInt(1)
-		g.MulScalar(t0, zero, s1)
+		g.MulScalarG1(t0, zero, s1)
 		if !g.Equal(t0, zero) {
 			t.Fatal("0 ^ s == 0")
 		}
-		g.MulScalar(t0, a, sone)
+		g.MulScalarG1(t0, a, sone)
 		if !g.Equal(t0, a) {
 			t.Fatal("a ^ 1 == a")
 		}
-		g.MulScalar(t0, zero, s1)
+		g.MulScalarG1(t0, zero, s1)
 		if !g.Equal(t0, zero) {
 			t.Fatal("0 ^ s == a")
 		}
-		g.MulScalar(t0, a, s1)
-		g.MulScalar(t0, t0, s2)
+		g.MulScalarG1(t0, a, s1)
+		g.MulScalarG1(t0, t0, s2)
 		s3.Mul(s1, s2)
-		g.MulScalar(t1, a, s3)
+		g.MulScalarG1(t1, a, s3)
 		if !g.Equal(t0, t1) {
 			t.Fatal("(a ^ s1) ^ s2 == a ^ (s1 * s2)")
 		}
-		g.MulScalar(t0, a, s1)
-		g.MulScalar(t1, a, s2)
+		g.MulScalarG1(t0, a, s1)
+		g.MulScalarG1(t1, a, s2)
 		g.Add(t0, t0, t1)
 		s3.Add(s1, s2)
-		g.MulScalar(t1, a, s3)
+		g.MulScalarG1(t1, a, s3)
 		if !g.Equal(t0, t1) {
 			t.Fatal("(a ^ s1) + (a ^ s2) == a ^ (s1 + s2)")
 		}
 	}
 }
 
-func TestG1MultiplicationCross(t *testing.T) {
+func TestG2MultiplicativeProperties(t *testing.T) {
+	g := NewG()
+	t0, t1 := g.New(), g.New()
+	zero := g.Zero()
+	for i := 0; i < fuz; i++ {
+		a := g.randG2Affine()
+		s1, s2, s3 := randScalar(q), randScalar(q), randScalar(q)
+		sone := big.NewInt(1)
+		g.MulScalarG2(t0, zero, s1)
+		if !g.Equal(t0, zero) {
+			t.Fatal("0 ^ s == 0")
+		}
+		g.MulScalarG2(t0, a, sone)
+		if !g.Equal(t0, a) {
+			t.Fatal("a ^ 1 == a")
+		}
+		g.MulScalarG2(t0, zero, s1)
+		if !g.Equal(t0, zero) {
+			t.Fatal("0 ^ s == a")
+		}
+		g.MulScalarG2(t0, a, s1)
+		g.MulScalarG2(t0, t0, s2)
+		s3.Mul(s1, s2)
+		g.MulScalarG2(t1, a, s3)
+		if !g.Equal(t0, t1) {
+			t.Fatal("(a ^ s1) ^ s2 == a ^ (s1 * s2)")
+		}
+		g.MulScalarG2(t0, a, s1)
+		g.MulScalarG2(t1, a, s2)
+		g.Add(t0, t0, t1)
+		s3.Add(s1, s2)
+		g.MulScalarG2(t1, a, s3)
+		if !g.Equal(t0, t1) {
+			t.Fatal("(a ^ s1) + (a ^ s2) == a ^ (s1 + s2)")
+		}
+	}
+}
+
+func TestGroupMultiplicationCross(t *testing.T) {
 	g := NewG()
 	for i := 0; i < fuz; i++ {
 		a := g.randG1Correct()
 		s := randScalar(q)
-		res0, res1, res2 := g.New(), g.New(), g.New()
+		res0, res1, res2, res3 := g.New(), g.New(), g.New(), g.New()
 
 		g.mulScalar(res0, a, s)
 		g.wnafMul(res1, a, s)
-		g.MultiExp(res2, []*Point{a}, []*big.Int{s})
+		g.glvMulG1(res2, a, s)
+		_, _ = g.MultiExp(res3, []*Point{a}, []*big.Int{s})
 
 		if !g.Equal(res0, res1) {
 			t.Fatal("cross multiplication failed (wnaf)", i)
 		}
 		if !g.Equal(res0, res2) {
+			t.Fatal("cross multiplication failed (glv)", i)
+		}
+		if !g.Equal(res0, res3) {
+			t.Fatal("cross multiplication failed (multiexp)", i)
+		}
+	}
+	for i := 0; i < fuz; i++ {
+		a := g.randG2Correct()
+		s := randScalar(q)
+		res0, res1, res2, res3 := g.New(), g.New(), g.New(), g.New()
+
+		g.mulScalar(res0, a, s)
+		g.wnafMul(res1, a, s)
+		g.glvMulG2(res2, a, s)
+		_, _ = g.MultiExp(res3, []*Point{a}, []*big.Int{s})
+
+		if !g.Equal(res0, res1) {
+			t.Fatal("cross multiplication failed (wnaf)", i)
+		}
+		if !g.Equal(res0, res2) {
+			t.Fatal("cross multiplication failed (glv)", i)
+		}
+		if !g.Equal(res0, res3) {
 			t.Fatal("cross multiplication failed (multiexp)", i)
 		}
 	}
@@ -252,7 +314,7 @@ func TestGroupMultiExpExpected(t *testing.T) {
 	scalars[1] = big.NewInt(3)
 	bases[0], bases[1] = new(Point).Set(one), new(Point).Set(one)
 	expected, result := g.New(), g.New()
-	g.MulScalar(expected, one, big.NewInt(5))
+	g.mulScalar(expected, one, big.NewInt(5))
 	_, _ = g.MultiExp(result, bases[:], scalars[:])
 	if !g.Equal(expected, result) {
 		t.Fatal("bad multi-exponentiation")
@@ -274,7 +336,7 @@ func TestGroupMultiExp(t *testing.T) {
 		}
 		expected, tmp := g.New(), g.New()
 		for i := 0; i < n; i++ {
-			g.MulScalar(tmp, bases[i], scalars[i])
+			g.mulScalar(tmp, bases[i], scalars[i])
 			g.Add(expected, expected, tmp)
 		}
 		result := g.New()
@@ -331,10 +393,32 @@ func BenchmarkGroupMulWNAF(t *testing.B) {
 	})
 	for i := 1; i < 8; i++ {
 		wnafMulWindow = uint(i)
-		t.Run(fmt.Sprintf("Fr, window: %d", i), func(t *testing.B) {
+		t.Run(fmt.Sprintf("window: %d", i), func(t *testing.B) {
 			t.ResetTimer()
 			for i := 0; i < t.N; i++ {
 				g.wnafMul(res, p, s)
+			}
+		})
+	}
+}
+
+func BenchmarkG1MulGLV(t *testing.B) {
+	g := NewG()
+	p := new(Point).Set(&g1One)
+	s := randScalar(q)
+	res := new(Point)
+	t.Run("Naive", func(t *testing.B) {
+		t.ResetTimer()
+		for i := 0; i < t.N; i++ {
+			g.mulScalar(res, p, s)
+		}
+	})
+	for i := 1; i < 8; i++ {
+		glvMulWindow = uint(i)
+		t.Run(fmt.Sprintf("window: %d", i), func(t *testing.B) {
+			t.ResetTimer()
+			for i := 0; i < t.N; i++ {
+				g.glvMulG1(res, p, s)
 			}
 		})
 	}

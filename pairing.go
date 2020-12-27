@@ -6,17 +6,16 @@ const (
 )
 
 type pair struct {
-	g1 *PointG1
-	g2 *PointG2
+	g1 *Point
+	g2 *Point
 }
 
-func newPair(g1 *PointG1, g2 *PointG2) pair {
+func newPair(g1 *Point, g2 *Point) pair {
 	return pair{g1, g2}
 }
 
 type Engine struct {
-	G1  *G1
-	G2  *G2
+	g   *G
 	fp6 *fp6
 	fp3 *fp3
 	pairingEngineTemp
@@ -31,13 +30,10 @@ type Engine struct {
 func NewEngine() *Engine {
 	fp3 := newFp3()
 	fp6 := newFp6(fp3)
-	g1 := NewG1()
-	g2 := NewG2()
 	return &Engine{
 		fp6:               fp6,
 		fp3:               fp3,
-		G1:                g1,
-		G2:                g2,
+		g:                 NewG(),
 		twistType:         twistType,
 		pairingEngineTemp: newEngineTemp(),
 		xIsNeg:            xIsNeg,
@@ -71,7 +67,7 @@ func (e *Engine) calculate() *fe6 {
 }
 
 // since original f \in GT = Fp6 then f (a0+a1*x+a2x^2) where (a0,a1,a2) \in Fp
-func (e *Engine) doublingStep(coeff *[3]fe, r *PointG2) {
+func (e *Engine) doublingStep(coeff *[3]fe, r *Point) {
 	// Adaptation of Formula 3 in https://eprint.iacr.org/2010/526.pdf
 
 	// A = X1 * Y1
@@ -168,7 +164,7 @@ func (e *Engine) doublingStep(coeff *[3]fe, r *PointG2) {
 }
 
 // since original f \in GT = Fp6 then f (a0+a1*x+a2x^2) where (a0,a1,a2) \in Fp
-func (e *Engine) additionStep(coeff *[3]fe, r, q *PointG2) {
+func (e *Engine) additionStep(coeff *[3]fe, r, q *Point) {
 	tmp := new(fe)
 
 	// theta = Y1 - Y2*Z1
@@ -248,11 +244,11 @@ func (e *Engine) additionStep(coeff *[3]fe, r, q *PointG2) {
 }
 
 // compute
-func (e *Engine) preCompute(ellCoeffs *[288][3]fe, twistPoint *PointG2) {
-	if e.G2.IsZero(twistPoint) {
+func (e *Engine) preCompute(ellCoeffs *[288][3]fe, twistPoint *Point) {
+	if e.g.IsZero(twistPoint) {
 		return
 	}
-	r1 := new(PointG2).Set(twistPoint)
+	r1 := new(Point).Set(twistPoint)
 	j := 0
 	// f_{u+1,Q}(P)
 	for i := int(ateLoop1.BitLen() - 2); i >= 0; i-- {
@@ -265,9 +261,9 @@ func (e *Engine) preCompute(ellCoeffs *[288][3]fe, twistPoint *PointG2) {
 		}
 	}
 
-	r2 := new(PointG2).Set(twistPoint)
-	negTwist := e.G2.New()
-	e.G2.Neg(negTwist, twistPoint)
+	r2 := new(Point).Set(twistPoint)
+	negTwist := e.g.New()
+	e.g.Neg(negTwist, twistPoint)
 
 	// f_{u^3-u^2-u,Q}(P)
 	for i := len(ateLoop2) - 2; i >= 0; i-- {
@@ -285,7 +281,7 @@ func (e *Engine) preCompute(ellCoeffs *[288][3]fe, twistPoint *PointG2) {
 
 }
 
-func (e *Engine) ell(f *fe6, coeffs *[3]fe, p *PointG1) {
+func (e *Engine) ell(f *fe6, coeffs *[3]fe, p *Point) {
 	c0, c1, c2 := new(fe), new(fe), new(fe)
 	c0.set(&coeffs[0])
 	c1.set(&coeffs[1])
@@ -542,7 +538,7 @@ func (e *Engine) finalExp(f *fe6) {
 }
 
 // AddPair adds a g1, g2 point pair to pairing engine
-func (e *Engine) AddPair(g1 *PointG1, g2 *PointG2) *Engine {
+func (e *Engine) AddPair(g1 *Point, g2 *Point) *Engine {
 	p := newPair(g1, g2)
 	if !e.isZero(p) {
 		e.affine(p)
@@ -552,9 +548,9 @@ func (e *Engine) AddPair(g1 *PointG1, g2 *PointG2) *Engine {
 }
 
 // AddPairInv adds a G1, G2 point pair to pairing engine. G1 point is negated.
-func (e *Engine) AddPairInv(g1 *PointG1, g2 *PointG2) *Engine {
-	ng1 := e.G1.New().Set(g1)
-	e.G1.Neg(ng1, g1)
+func (e *Engine) AddPairInv(g1 *Point, g2 *Point) *Engine {
+	ng1 := e.g.New().Set(g1)
+	e.g.Neg(ng1, g1)
 	e.AddPair(ng1, g2)
 	return e
 }
@@ -566,12 +562,12 @@ func (e *Engine) Reset() *Engine {
 }
 
 func (e *Engine) isZero(p pair) bool {
-	return e.G1.IsZero(p.g1) || e.G2.IsZero(p.g2)
+	return e.g.IsZero(p.g1) || e.g.IsZero(p.g2)
 }
 
 func (e *Engine) affine(p pair) {
-	e.G1.Affine(p.g1)
-	e.G2.Affine(p.g2)
+	e.g.Affine(p.g1)
+	e.g.Affine(p.g2)
 }
 
 // Result computes pairing and returns target group element as result.

@@ -118,4 +118,4 @@ var frobeniusCoeffs6 = [6]fe{
 }
 
 // x
-var x = bigFromHex("0x8508c00000000001")
+// var x = bigFromHex("0x8508c00000000001")

@@ -3,13 +3,13 @@ A new secure and optimized pairing-friendly elliptic curve that is suitable for 
 
 ## TODO
 - [x] Sparse multiplications for Fp6
-- [ ] Pairing implementation
-    - [ ] Precomputation of line evaluation for addition and doubling steps
-    - [ ] Optimal Ate Miller loop
-    - [ ] Final exponentiation
+- [x] Pairing implementation
+    - [x] Precomputation of line evaluation for addition and doubling steps
+    - [x] Optimal Ate Miller loop
+    - [x] Final exponentiation
         - [ ] Cyclotomic exponentiation
-    - [ ] Multi-pair evaluation
-    - [ ] Pairing tests
+    - [x] Multi-pair evaluation
+    - [x] Pairing tests
 - [ ] Scalar field
 - [ ] GLV multiplication
 

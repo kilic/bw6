@@ -44,7 +44,18 @@ var pPlus1Over4 = bigFromHex("0x48ba093ee0f382b461f250013ebfcfae49861aa07451a214
 // pMinus1Over2 = (p - 1) / 2
 var pMinus1Over2 = bigFromHex("0x9174127dc1e70568c3e4a0027d7f9f5c930c3540e8a34429413af7c043df20b83dd31c72c2748c81e75d7f92da11824344e476897cfec838ee69ee39f5ff974c508b612b33d47c0b067c577578521bf3489f34380000417a4e800000000045")
 
-// Curve Constants
+// parameter of p where p is actuall parameterized polynomial p(x)
+var x = bigFromHex("0x8508c00000000001")
+var xIsNeg = false
+var ateLoop1 = bigFromHex("0x8508c00000000002")
+var ateLoop1Neg = false
+var ateLoop2 = computeNaf(bigFromHex("0x23ed1347970dec008a442f991fffffffffffffffffffffff"))
+var ateLoop2Neg = false
+
+/*
+	Curve
+	y^2 = x+3 + b
+*/
 
 // Group order
 // q = x^6 - 2x^5 + 2x^3 + x + 1
@@ -78,7 +89,12 @@ var g2One = Point{
 	*new(fe).set(one),
 }
 
-// Frobenius Coefficients
+// G2 Twist type
+var twistType = TWIST_TYPE_M
+
+/*
+	Frobenius Coefficients
+*/
 
 var frobeniuCoeffs31 = [3]fe{
 	*new(fe).set(one),

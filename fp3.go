@@ -129,40 +129,46 @@ func (e *fp3) conjugate(c, a *fe3) {
 	c[2].set(&a[2])
 }
 
+func (e *fp3) mulByBaseField(c, a *fe3, z *fe) {
+	mul(&c[0], &a[0], z)
+	mul(&c[1], &a[1], z)
+	mul(&c[2], &a[2], z)
+}
+
 func (e *fp3) mul(c, a, b *fe3) {
 	// Guide to Pairing Based Cryptography
 	// Algorithm 5.21
 
 	t := e.t
-	mul(t[0], &a[0], &b[0])  // v0 = a0b0
-	mul(t[1], &a[1], &b[1])  // v1 = a1b1
-	mul(t[2], &a[2], &b[2])  // v2 = a2b2
-	ladd(t[3], &a[1], &a[2]) // a1 + a2
-	ladd(t[4], &b[1], &b[2]) // b1 + b2
-	mul(t[3], t[3], t[4])    // (a1 + a2)(b1 + b2)
-	add(t[4], t[1], t[2])    // v1 + v2
-	subAssign(t[3], t[4])    // (a1 + a2)(b1 + b2) - v1 - v2
+	mul(t[0], &a[0], &b[0]) // v0 = a0b0
+	mul(t[1], &a[1], &b[1]) // v1 = a1b1
+	mul(t[2], &a[2], &b[2]) // v2 = a2b2
+	add(t[3], &a[1], &a[2]) // a1 + a2
+	add(t[4], &b[1], &b[2]) // b1 + b2
+	mul(t[3], t[3], t[4])   // (a1 + a2)(b1 + b2)
+	add(t[4], t[1], t[2])   // v1 + v2
+	subAssign(t[3], t[4])   // (a1 + a2)(b1 + b2) - v1 - v2
 
 	doubleAssign(t[3])
 	doubleAssign(t[3])    // -((a1 + a2)(b1 + b2) - v1 - v2)α
 	sub(t[5], t[0], t[3]) // c0 = ((a1 + a2)(b1 + b2) - v1 - v2)α + v0
 
-	ladd(t[3], &a[0], &a[1]) // a0 + a1
-	ladd(t[4], &b[0], &b[1]) // b0 + b1
-	mul(t[3], t[3], t[4])    // (a0 + a1)(b0 + b1)
-	add(t[4], t[0], t[1])    // v0 + v1
-	sub(t[3], t[3], t[4])    // (a0 + a1)(b0 + b1) - v0 - v1
+	add(t[3], &a[0], &a[1]) // a0 + a1
+	add(t[4], &b[0], &b[1]) // b0 + b1
+	mul(t[3], t[3], t[4])   // (a0 + a1)(b0 + b1)
+	add(t[4], t[0], t[1])   // v0 + v1
+	sub(t[3], t[3], t[4])   // (a0 + a1)(b0 + b1) - v0 - v1
 
 	double(t[4], t[2])
 	doubleAssign(t[4])     // -αv2
 	sub(&c[1], t[3], t[4]) // c1 = (a0 + a1)(b0 + b1) - v0 - v1 + αv2
 
-	ladd(t[3], &a[0], &a[2]) // a0 + a2
-	ladd(t[4], &b[0], &b[2]) // b0 + b2
-	mul(t[3], t[3], t[4])    // (a0 + a2)(b0 + b2)
-	add(t[4], t[0], t[2])    // v0 + v2
-	sub(t[3], t[3], t[4])    // (a0 + a2)(b0 + b2) - v0 - v2
-	add(&c[2], t[1], t[3])   // c2 = (a0 + a2)(b0 + b2) - v0 - v2 + v1
+	add(t[3], &a[0], &a[2]) // a0 + a2
+	add(t[4], &b[0], &b[2]) // b0 + b2
+	mul(t[3], t[3], t[4])   // (a0 + a2)(b0 + b2)
+	add(t[4], t[0], t[2])   // v0 + v2
+	sub(t[3], t[3], t[4])   // (a0 + a2)(b0 + b2) - v0 - v2
+	add(&c[2], t[1], t[3])  // c2 = (a0 + a2)(b0 + b2) - v0 - v2 + v1
 	c[0].set(t[5])
 }
 
@@ -246,6 +252,17 @@ func (e *fp3) inverse(c, a *fe3) {
 	mul(&c[0], t[0], t[4]) // c0 = AF
 	mul(&c[1], t[2], t[4]) // c1 = BF
 	mul(&c[2], t[1], t[4]) // c2 = CF
+}
+
+func (e *fp3) mulByNonResidue(c, a *fe3) {
+	t := e.t
+	t[0].set(&a[2])
+	c[2].set(&a[1])
+	c[1].set(&a[0])
+	doubleAssign(t[0])
+	doubleAssign(t[0])
+	neg(t[0], t[0])
+	c[0].set(t[0])
 }
 
 func (e *fp3) frobeniusMap(c, a *fe3, power int) {

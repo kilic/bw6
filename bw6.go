@@ -3,7 +3,7 @@ package bw6
 const N_LIMBS = 12
 const FE_BYTE_SIZE = 96
 const FE_BIT_SIZE = 761
-const TWELWE_WORD_BYTE_SIZE = 768
+const TWELWE_WORD_BIT_SIZE = 768
 
 /*
 	Base field
@@ -12,7 +12,10 @@ const TWELWE_WORD_BYTE_SIZE = 768
 */
 
 // -p^(-1) mod 2^64
-var inp uint64 = 744663313386281181
+var inp uint64 = 0xa5593568fa798dd
+
+// supress linter warning: this variable used in assembly code
+var _ = inp
 
 // modulus = p
 var modulus = fe{
@@ -28,22 +31,6 @@ var modulus = fe{
 	0xb926186a81d14688,
 	0xd187c94004faff3e,
 	0x0122e824fb83ce0a,
-}
-
-// zero = 0
-var zero = &fe{
-	0x0000000000000000,
-	0x0000000000000000,
-	0x0000000000000000,
-	0x0000000000000000,
-	0x0000000000000000,
-	0x0000000000000000,
-	0x0000000000000000,
-	0x0000000000000000,
-	0x0000000000000000,
-	0x0000000000000000,
-	0x0000000000000000,
-	0x0000000000000000,
 }
 
 // r1 = r mod p
@@ -113,22 +100,11 @@ var nonResidue1 = &fe{
 	0x00fdf24e3267fa1e,
 }
 
-// nonResidue2 = -4u^0 + 0u^1 + 0u^2
-var nonResidue2 = &fe3{
-	fe{
-		0xe12e00000001e9c2,
-		0x63c1e3faa001cd69,
-		0xb1b4384fcbe29cf6,
-		0xc79630bc713d5a1d,
-		0x30127ac071851e2d,
-		0x0979f350dcd36af1,
-		0x6a66defed8b361f2,
-		0x53abac78b24d4e23,
-		0xb7ab89dede485a92,
-		0x5c3a0745675e8452,
-		0x446f17918c5f5700,
-		0x00fdf24e3267fa1e,
-	},
+// nonResidue3 = u
+var nonResidue3 = &fe3{
+	fe{0},
+	*new(fe).set(one),
+	fe{0},
 }
 
 // pPlus1Over4 = (p + 1) / 4
@@ -139,6 +115,11 @@ var pMinus1Over2 = bigFromHex("0x9174127dc1e70568c3e4a0027d7f9f5c930c3540e8a3442
 
 // parameter of p where p is actuall parameterized polynomial p(x)
 var x = bigFromHex("0x8508c00000000001")
+var xIsNeg = false
+var ateLoop1 = bigFromHex("0x8508c00000000002")
+var ateLoop1Neg = false
+var ateLoop2 = computeNaf(bigFromHex("0x23ed1347970dec008a442f991fffffffffffffffffffffff"))
+var ateLoop2Neg = false
 
 /*
 	Curve
@@ -151,20 +132,7 @@ var q = bigFromHex("0x1ae3a4617c510eac63b05c06ca1493b1a22d9f300f5138f1ef3622fba0
 
 // b coefficient for G1
 // b = -1
-var b = &fe{
-	0xf29a000000007ab6,
-	0x8c391832e000739b,
-	0x77738a6b6870f959,
-	0xbe36179047832b03,
-	0x84f3089e56574722,
-	0xc5a3614ac0b1d984,
-	0x5c81153f4906e9fe,
-	0x4d28be3a9f55c815,
-	0xd72c1d6f77d5f5c5,
-	0x73a18e069ac04458,
-	0xf9dfaa846595555f,
-	0x00d0f0a60a5be58c,
-}
+var b = new(fe).set(negativeOne)
 
 // b2 coefficient for G2
 // b2 = 4
@@ -190,8 +158,6 @@ var cofactorG1 = bigFromHex("0xad1972339049ce762c77d5ac34cb12efc856a0853c9db94cc
 var cofactorG2 = bigFromHex("0xad1972339049ce762c77d5ac34cb12efc856a0853c9db94cc61c554757551c0c832ba4061000003b3de5800000000075")
 
 // G1 generator
-// x = 0x01075b020ea190c8b277ce98a477beaee6a0cfb7551b27f0ee05c54b85f56fc779017ffac15520ac11dbfcd294c2e746a17a54ce47729b905bd71fa0c9ea097103758f9a280ca27f6750dd0356133e82055928aca6af603f4088f3af66e5b43d
-// y = 0x0058b84e0a6fc574e6fd637b45cc2a420f952589884c9ec61a7348d2a2e573a3265909f1af7e0dbac5b8fa1771b5b806cc685d31717a4c55be3fb90b6fc2cdd49f9df141b3053253b2b08119cad0fb93ad1cb2be0b20d2a1bafc8f2db4e95363
 var g1One = PointG1{
 	fe{
 		0xd6e42d7614c2d770,
@@ -221,12 +187,10 @@ var g1One = PointG1{
 		0xe217e407e218695f,
 		0x009d1eb23b7cf684,
 	},
-	*new(fe).set(r1),
+	*new(fe).set(one),
 }
 
-// G1 generator
-// x = 0x01075b020ea190c8b277ce98a477beaee6a0cfb7551b27f0ee05c54b85f56fc779017ffac15520ac11dbfcd294c2e746a17a54ce47729b905bd71fa0c9ea097103758f9a280ca27f6750dd0356133e82055928aca6af603f4088f3af66e5b43d
-// y = 0x0017c3357761369f8179eb10e4b6d2dc26b7cf9acec2181c81a78e2753ffe3160a1d86c80b95a59c94c97eb733293fef64f293dbd2c712b88906c170ffa823003ea96fcd504affc758aa2d3a3c5a02a591ec0594f9eac689eb70a16728c73b61
+// G2 Generator
 var g2One = PointG2{
 	fe{
 		0x3d902a84cd9f4f78,
@@ -256,15 +220,18 @@ var g2One = PointG2{
 		0x72a63c7874409840,
 		0x0114976e5b0db280,
 	},
-	*new(fe).set(r1),
+	*new(fe).set(one),
 }
+
+// G2 Twist type
+var twistType = TWIST_TYPE_M
 
 /*
 	Frobenius Coefficients
 */
 
 var frobeniuCoeffs31 = [3]fe{
-	*new(fe).set(r1),
+	*new(fe).set(one),
 	fe{
 		0x7f96b51bd840c549,
 		0xd59782096496171f,
@@ -296,7 +263,7 @@ var frobeniuCoeffs31 = [3]fe{
 }
 
 var frobeniuCoeffs32 = [3]fe{
-	*new(fe).set(r1),
+	*new(fe).set(one),
 	fe{
 		0x67a04ae427bfb5f8,
 		0x9d32d491eb6a5cff,
@@ -327,275 +294,11 @@ var frobeniuCoeffs32 = [3]fe{
 	},
 }
 
-var frobeniusCoeffs6 = [6][3]fe{
-	// 0
-	[3]fe{
-		fe{
-			0x0202ffffffff85d5,
-			0x5a5826358fff8ce7,
-			0x9e996e43827faade,
-			0xda6aff320ee47df4,
-			0xece9cb3e1d94b80b,
-			0xc0e667a25248240b,
-			0xa74da5bfdcad3905,
-			0x2352e7fe462f2103,
-			0x7b56588008b1c87c,
-			0x45848a63e711022f,
-			0xd7a81ebb9f65a9df,
-			0x0051f77ef127e87d,
-		},
-		fe{
-			0x0202ffffffff85d5,
-			0x5a5826358fff8ce7,
-			0x9e996e43827faade,
-			0xda6aff320ee47df4,
-			0xece9cb3e1d94b80b,
-			0xc0e667a25248240b,
-			0xa74da5bfdcad3905,
-			0x2352e7fe462f2103,
-			0x7b56588008b1c87c,
-			0x45848a63e711022f,
-			0xd7a81ebb9f65a9df,
-			0x0051f77ef127e87d,
-		},
-		fe{
-			0x0202ffffffff85d5,
-			0x5a5826358fff8ce7,
-			0x9e996e43827faade,
-			0xda6aff320ee47df4,
-			0xece9cb3e1d94b80b,
-			0xc0e667a25248240b,
-			0xa74da5bfdcad3905,
-			0x2352e7fe462f2103,
-			0x7b56588008b1c87c,
-			0x45848a63e711022f,
-			0xd7a81ebb9f65a9df,
-			0x0051f77ef127e87d,
-		},
-	},
-	// 1
-	[3]fe{
-		fe{
-			0xf29a000000007ab6,
-			0x8c391832e000739b,
-			0x77738a6b6870f959,
-			0xbe36179047832b03,
-			0x84f3089e56574722,
-			0xc5a3614ac0b1d984,
-			0x5c81153f4906e9fe,
-			0x4d28be3a9f55c815,
-			0xd72c1d6f77d5f5c5,
-			0x73a18e069ac04458,
-			0xf9dfaa846595555f,
-			0x00d0f0a60a5be58c,
-		},
-		fe{
-			0x75064ae427bf3b42,
-			0x10f9bc5f0b69e963,
-			0xcc5cb1b14e0f587b,
-			0x4d3fb306af152ea1,
-			0x827040e0fccea53d,
-			0x82640a1166dbffc8,
-			0x30228120b0181307,
-			0xd137b92adf4a6748,
-			0xf6aaa3e430ed815e,
-			0xb514282e4b01ea4b,
-			0xa422396b6e993acc,
-			0x0012e5db4d0dc277,
-		},
-		fe{
-			0x8cfcb51bd8404a93,
-			0x495e69d68495a383,
-			0xd23cbc9234705263,
-			0x8d2b4c2b5fcf4f52,
-			0x6a798a5d20c612ce,
-			0x3e825d90eb6c2443,
-			0x772b249f2c9525fe,
-			0x521b2ed366e4b9bb,
-			0x84abb49bd7c4471d,
-			0x907062359c0f17e3,
-			0x3385e55030cc6f12,
-			0x003f11a3a41a2606,
-		},
-	},
-	// 2
-	[3]fe{
-		fe{
-			0x0202ffffffff85d5,
-			0x5a5826358fff8ce7,
-			0x9e996e43827faade,
-			0xda6aff320ee47df4,
-			0xece9cb3e1d94b80b,
-			0xc0e667a25248240b,
-			0xa74da5bfdcad3905,
-			0x2352e7fe462f2103,
-			0x7b56588008b1c87c,
-			0x45848a63e711022f,
-			0xd7a81ebb9f65a9df,
-			0x0051f77ef127e87d,
-		},
-		fe{
-			0x67a04ae427bfb5f8,
-			0x9d32d491eb6a5cff,
-			0x43d03c1cb68051d4,
-			0x0b75ca96f69859a5,
-			0x0763497f5325ec60,
-			0x48076b5c278dd94d,
-			0x8ca3965ff91efd06,
-			0x1e6077657ea02f5d,
-			0xcdd6c153a8c37724,
-			0x28b5b634e5c22ea4,
-			0x9e01e3efd42e902c,
-			0x00e3d6815769a804,
-		},
-		fe{
-			0x7f96b51bd840c549,
-			0xd59782096496171f,
-			0x49b046fd9ce14bbc,
-			0x4b6163bba7527a56,
-			0xef6c92fb771d59f1,
-			0x0425bedbac1dfdc7,
-			0xd3ac39de759c0ffd,
-			0x9f43ed0e063a81d0,
-			0x5bd7d20b4f9a3ce2,
-			0x0411f03c36cf5c3c,
-			0x2d658fd49661c472,
-			0x01100249ae760b93,
-		},
-	},
-	// 3
-	[3]fe{
-		fe{
-			0xf29a000000007ab6,
-			0x8c391832e000739b,
-			0x77738a6b6870f959,
-			0xbe36179047832b03,
-			0x84f3089e56574722,
-			0xc5a3614ac0b1d984,
-			0x5c81153f4906e9fe,
-			0x4d28be3a9f55c815,
-			0xd72c1d6f77d5f5c5,
-			0x73a18e069ac04458,
-			0xf9dfaa846595555f,
-			0x00d0f0a60a5be58c,
-		},
-		fe{
-			0xf29a000000007ab6,
-			0x8c391832e000739b,
-			0x77738a6b6870f959,
-			0xbe36179047832b03,
-			0x84f3089e56574722,
-			0xc5a3614ac0b1d984,
-			0x5c81153f4906e9fe,
-			0x4d28be3a9f55c815,
-			0xd72c1d6f77d5f5c5,
-			0x73a18e069ac04458,
-			0xf9dfaa846595555f,
-			0x00d0f0a60a5be58c,
-		},
-		fe{
-			0xf29a000000007ab6,
-			0x8c391832e000739b,
-			0x77738a6b6870f959,
-			0xbe36179047832b03,
-			0x84f3089e56574722,
-			0xc5a3614ac0b1d984,
-			0x5c81153f4906e9fe,
-			0x4d28be3a9f55c815,
-			0xd72c1d6f77d5f5c5,
-			0x73a18e069ac04458,
-			0xf9dfaa846595555f,
-			0x00d0f0a60a5be58c,
-		},
-	},
-	// 4
-	[3]fe{
-		fe{
-			0x0202ffffffff85d5,
-			0x5a5826358fff8ce7,
-			0x9e996e43827faade,
-			0xda6aff320ee47df4,
-			0xece9cb3e1d94b80b,
-			0xc0e667a25248240b,
-			0xa74da5bfdcad3905,
-			0x2352e7fe462f2103,
-			0x7b56588008b1c87c,
-			0x45848a63e711022f,
-			0xd7a81ebb9f65a9df,
-			0x0051f77ef127e87d,
-		},
-		fe{
-			0x7f96b51bd840c549,
-			0xd59782096496171f,
-			0x49b046fd9ce14bbc,
-			0x4b6163bba7527a56,
-			0xef6c92fb771d59f1,
-			0x0425bedbac1dfdc7,
-			0xd3ac39de759c0ffd,
-			0x9f43ed0e063a81d0,
-			0x5bd7d20b4f9a3ce2,
-			0x0411f03c36cf5c3c,
-			0x2d658fd49661c472,
-			0x01100249ae760b93,
-		},
-		fe{
-			0x67a04ae427bfb5f8,
-			0x9d32d491eb6a5cff,
-			0x43d03c1cb68051d4,
-			0x0b75ca96f69859a5,
-			0x0763497f5325ec60,
-			0x48076b5c278dd94d,
-			0x8ca3965ff91efd06,
-			0x1e6077657ea02f5d,
-			0xcdd6c153a8c37724,
-			0x28b5b634e5c22ea4,
-			0x9e01e3efd42e902c,
-			0x00e3d6815769a804,
-		},
-	},
-	// 5
-	[3]fe{
-		fe{
-			0xf29a000000007ab6,
-			0x8c391832e000739b,
-			0x77738a6b6870f959,
-			0xbe36179047832b03,
-			0x84f3089e56574722,
-			0xc5a3614ac0b1d984,
-			0x5c81153f4906e9fe,
-			0x4d28be3a9f55c815,
-			0xd72c1d6f77d5f5c5,
-			0x73a18e069ac04458,
-			0xf9dfaa846595555f,
-			0x00d0f0a60a5be58c,
-		},
-		fe{
-			0x8cfcb51bd8404a93,
-			0x495e69d68495a383,
-			0xd23cbc9234705263,
-			0x8d2b4c2b5fcf4f52,
-			0x6a798a5d20c612ce,
-			0x3e825d90eb6c2443,
-			0x772b249f2c9525fe,
-			0x521b2ed366e4b9bb,
-			0x84abb49bd7c4471d,
-			0x907062359c0f17e3,
-			0x3385e55030cc6f12,
-			0x003f11a3a41a2606,
-		},
-		fe{
-			0x75064ae427bf3b42,
-			0x10f9bc5f0b69e963,
-			0xcc5cb1b14e0f587b,
-			0x4d3fb306af152ea1,
-			0x827040e0fccea53d,
-			0x82640a1166dbffc8,
-			0x30228120b0181307,
-			0xd137b92adf4a6748,
-			0xf6aaa3e430ed815e,
-			0xb514282e4b01ea4b,
-			0xa422396b6e993acc,
-			0x0012e5db4d0dc277,
-		},
-	},
+var frobeniusCoeffs6 = [6]fe{
+	*new(fe).set(one),
+	fe{0x8cfcb51bd8404a93, 0x495e69d68495a383, 0xd23cbc9234705263, 0x8d2b4c2b5fcf4f52, 0x6a798a5d20c612ce, 0x3e825d90eb6c2443, 0x772b249f2c9525fe, 0x521b2ed366e4b9bb, 0x84abb49bd7c4471d, 0x907062359c0f17e3, 0x3385e55030cc6f12, 0x3f11a3a41a2606},
+	fe{0x7f96b51bd840c549, 0xd59782096496171f, 0x49b046fd9ce14bbc, 0x4b6163bba7527a56, 0xef6c92fb771d59f1, 0x0425bedbac1dfdc7, 0xd3ac39de759c0ffd, 0x9f43ed0e063a81d0, 0x5bd7d20b4f9a3ce2, 0x0411f03c36cf5c3c, 0x2d658fd49661c472, 0x01100249ae760b93},
+	*new(fe).set(negativeOne),
+	fe{0x67a04ae427bfb5f8, 0x9d32d491eb6a5cff, 0x43d03c1cb68051d4, 0x0b75ca96f69859a5, 0x0763497f5325ec60, 0x48076b5c278dd94d, 0x8ca3965ff91efd06, 0x1e6077657ea02f5d, 0xcdd6c153a8c37724, 0x28b5b634e5c22ea4, 0x9e01e3efd42e902c, 0x00e3d6815769a804},
+	fe{0x75064ae427bf3b42, 0x10f9bc5f0b69e963, 0xcc5cb1b14e0f587b, 0x4d3fb306af152ea1, 0x827040e0fccea53d, 0x82640a1166dbffc8, 0x30228120b0181307, 0xd137b92adf4a6748, 0xf6aaa3e430ed815e, 0xb514282e4b01ea4b, 0xa422396b6e993acc, 0x0012e5db4d0dc277},
 }

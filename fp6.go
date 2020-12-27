@@ -118,7 +118,6 @@ func (e *fp6) conjugate(c, a *fe6) {
 	// c0 = a0
 	// c1 = -a1
 	fp3 := e.fp3
-	c.set(a)
 	c[0].set(&a[0])
 	fp3.neg(&c[1], &a[1])
 }
@@ -127,24 +126,20 @@ func (e *fp6) mul(c, a, b *fe6) {
 	// Multiplication and Squaring on Pairing-Friendly Fields
 	// Karatsuba multiplication algorithm
 	// https://eprint.iacr.org/2006/471
-	//
-	// v0 = a0b0
-	// c0 = v0 + αv1 = v0 - 4v1
-	// c1 = (a0 + a1)(b0 + b1) - v0 - v1
+
 	fp3, t := e.fp3, e.t
 
 	fp3.mul(t[1], &a[0], &b[0]) // v0 = a0b0
 	fp3.mul(t[2], &a[1], &b[1]) // v1 = a1b1
 
-	fp3.ladd(t[0], &a[0], &a[1]) // a0 + a1
-	fp3.ladd(t[3], &b[0], &b[1]) // b0 + b1
-	fp3.mul(t[0], t[0], t[3])    // (a0 + a1)(b0 + b1)
-	fp3.sub(t[0], t[0], t[1])    // (a0 + a1)(b0 + b1) - v0
-	fp3.sub(&c[1], t[0], t[2])   // c1 = (a0 + a1)(b0 + b1) - v0 - v1
+	fp3.add(t[0], &a[0], &a[1]) // a0 + a1
+	fp3.add(t[3], &b[0], &b[1]) // b0 + b1
+	fp3.mul(t[0], t[0], t[3])   // (a0 + a1)(b0 + b1)
+	fp3.sub(t[0], t[0], t[1])   // (a0 + a1)(b0 + b1) - v0
+	fp3.sub(&c[1], t[0], t[2])  // c1 = (a0 + a1)(b0 + b1) - v0 - v1
 
-	fp3.double(t[2], t[2])     //
-	fp3.double(t[2], t[2])     // -4v1
-	fp3.sub(&c[0], t[1], t[2]) // c0 = v0 - 4v1
+	fp3.mulByNonResidue(t[2], t[2])
+	fp3.add(&c[0], t[1], t[2]) // c0 = v0 - ßv1
 }
 
 func (e *fp6) square(c, a *fe6) {
@@ -158,17 +153,15 @@ func (e *fp6) squareKaratsuba(c, a *fe6) {
 	//
 	// v0 = a0^2
 	// v1 = a1^2
-	// c0 = v0 + αv1 = v0 - 4v1
+	// c0 = v0 + αv1 = v0 - ßv1
 	// c1 = (a0 + a1)^2 - v0 - v1
 
 	fp3, t := e.fp3, e.t
 	fp3.square(t[0], &a[0]) // v0 = a0^2
 	fp3.square(t[1], &a[1]) // v1 = a1^2
 
-	fp3.double(t[2], t[1]) //
-	fp3.double(t[2], t[2]) // 4v1
-
-	fp3.sub(t[3], t[0], t[2]) // c0 = v0 - 4v1
+	fp3.mulByNonResidue(t[2], t[2])
+	fp3.sub(t[3], t[0], t[2]) // c0 = v0 - ßv1
 
 	fp3.ladd(t[2], &a[0], &a[1]) // a0 + a1
 	fp3.square(t[2], t[2])       // (a0 + a1)^2
@@ -186,42 +179,38 @@ func (e *fp6) squareComplex(c, a *fe6) {
 	// https://eprint.iacr.org/2006/471
 	//
 	// v0 = a0a1
-	// c0 = (a0 + a1)(a0 + αa1) - v0 - αv0 = (a0 + a1)(a0 - 4a1) + 3a1a0
+	// c0 = (a0 + a1)(a0 + ßa1) - v0 - ßv0
 	// c1 = 2v0
-
 	fp3, t := e.fp3, e.t
-	fp3.double(t[0], &a[1])      // 2a1
-	fp3.double(t[0], t[0])       // 4a1
-	fp3.mul(t[1], &a[0], &a[1])  // a0a1
-	fp3.double(t[2], t[1])       // 2a0a1
-	fp3.ladd(t[3], &a[0], &a[1]) // a0 + a1
-	c[1].set(t[2])               // c1 = 2a0a1
-	fp3.add(t[2], t[2], t[1])    // 3a0a1
-	fp3.sub(t[0], &a[0], t[0])   // (a0 - 4a1)
-	fp3.mul(t[0], t[0], t[3])    // (a0 + a1)(a0 - 4a1)
-	fp3.add(&c[0], t[2], t[0])   // (a0 + a1)(a0 - 4a1) + 3a0a1
+	fp3.mulByNonResidue(t[0], &a[1]) // ßa1
+	fp3.mul(t[1], &a[0], &a[1])      // v0 = a0a1
+	fp3.mulByNonResidue(t[2], t[1])  // ßv0
+
+	fp3.add(t[0], t[0], &a[0]) // a0 + ßa1
+	fp3.add(t[2], t[2], t[1])  // v0 + ßv0
+
+	fp3.add(t[3], &a[0], &a[1]) // a0 + a1
+	fp3.mul(t[0], t[0], t[3])   // (a0 + a1)(a0 + ßa1)
+
+	fp3.sub(&c[0], t[0], t[2]) // (a0 + a1)(a0 + ßa1) - v0 - ßv0
+	fp3.double(&c[1], t[1])    // 2v0
 }
 
 func (e *fp6) inverse(c, a *fe6) {
 	// Guide to Pairing Based Cryptography
 	// Algorithm 5.19
-	//
-	// v = (a0^2 - βa1^2)^-1 =  (a0^2 + 4a1^2)^-1
-	// c0 = a0v
-	// c1 = a1v
+
 	fp3, t := e.fp3, e.t
 
 	fp3.square(t[0], &a[0]) // a0^2
 	fp3.square(t[1], &a[1]) // a1^2
 
-	fp3.double(t[2], t[1])
-	fp3.double(t[2], t[2]) // 4a1^2
+	fp3.mulByNonResidue(t[2], t[1])
+	fp3.sub(t[0], t[0], t[2]) // v = a0^2 + ßa1^2
+	fp3.inverse(t[1], t[0])   // v = v^-1
 
-	fp3.add(t[0], t[0], t[2]) //
-	fp3.inverse(t[1], t[0])   // v = a0^2 + 4a1^2
-
-	fp3.mul(&c[0], t[1], &a[0]) // a0v1
-	fp3.mul(t[1], t[1], &a[1])  // a1v1
+	fp3.mul(&c[0], t[1], &a[0]) // a0v
+	fp3.mul(t[1], t[1], &a[1])  // a1v
 	fp3.neg(&c[1], t[1])
 }
 
@@ -235,118 +224,99 @@ func (e *fp6) exp(c, a *fe6, s *big.Int) {
 	}
 	c.set(z)
 }
+func (e *fp6) optimized_exp(c, a *fe6, s *big.Int) {
+	naf := computeNaf(s)
+
+	z := e.one()
+
+	inv := new(fe6)
+	e.inverse(inv, a)
+	foundNonZero := false
+	for i := len(naf) - 1; i >= 0; i-- {
+		if foundNonZero {
+			e.square(z, z)
+		}
+		switch naf[i] {
+		case 1:
+			foundNonZero = true
+			e.mul(z, z, a)
+		case -1:
+			foundNonZero = true
+			e.mul(z, z, inv)
+		}
+
+	}
+
+	c.set(z)
+}
 
 func (e *fp6) frobeniusMap(c, a *fe6, power int) {
 	fp3 := e.fp3
 	fp3.frobeniusMap(&c[0], &a[0], power)
-	mul(&c[1][0], &a[1][0], &frobeniusCoeffs6[power%6][0])
-	mul(&c[1][1], &a[1][1], &frobeniusCoeffs6[power%6][1])
-	mul(&c[1][2], &a[1][2], &frobeniusCoeffs6[power%6][2])
-}
-
-func (e *fp6) frobeniusMap1(c, a *fe6, power int) {
-	fp3 := e.fp3
-	fp3.frobeniusMap(&c[0], &a[0], power)
-	neg(&c[1][0], &a[1][0])
-	mul(&c[1][1], &a[1][1], &frobeniusCoeffs6[1][1])
-	mul(&c[1][2], &a[1][2], &frobeniusCoeffs6[1][2])
+	fp3.frobeniusMap(&c[1], &a[1], power)
+	fp3.mulByBaseField(&c[1], &c[1], &frobeniusCoeffs6[power%6])
 }
 
 // TODO: zexe uses different name which is mul by 034
-// lets say {a,b} \in Fp6 where
+// lets say {a,b} $\in$ Fp6 where
 // in sparse multiplication of a*b
 // a = (a00 + a01*u + a02*u^2) + (a10 + a11*u + a12* u^2)
 // b = (b00 + 0 + b02*u^2) + (0 + b11*u + 0)
-func (e *fp6) mulBy024Assign(a *fe6, c0, c1, c2 *fe) {
-	z0, z1, z2, z3, z4, z5 := &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}
-	z0.set(&a[0][0])
-	z1.set(&a[0][1])
-	z2.set(&a[0][2])
-	z3.set(&a[1][0])
-	z4.set(&a[1][1])
-	z5.set(&a[1][2])
+func (e *fp6) mulBy034Assign(a *fe6, c0, c3, c4 *fe) {
+	// z0, z1, z2, z3, z4, z5 := &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}
+	// z0.set(&a[0][0])
+	// z1.set(&a[0][1])
+	// z2.set(&a[0][2])
+	// z3.set(&a[1][0])
+	// z4.set(&a[1][1])
+	// z5.set(&a[1][2])
 
-	x0, x2, x4 := &fe{}, &fe{}, &fe{}
+	x0, x3, x4 := &fe{}, &fe{}, &fe{}
 	x0.set(c0)
-	x2.set(c1)
-	x4.set(c2)
+	x3.set(c3)
+	x4.set(c4)
 
-	d0, d2, d4 := &fe{}, &fe{}, &fe{}
-	s0, s1 := &fe{}, &fe{}
-	t0, t1, t2, t3, t4 := &fe{}, &fe{}, &fe{}, &fe{}, &fe{}
+	tmp1, tmp2 := new(fe), new(fe)
+	mul(tmp1, x3, nonResidue1)
+	mul(tmp2, x4, nonResidue1)
 
-	mul(d0, z0, x0)
-	mul(d2, z2, x2)
-	mul(d4, z4, x4)
-	add(t2, z0, z4)
-	add(t1, z0, z2)
-	add(s0, z1, z3)
-	addAssign(s0, z5)
+	t0, t1, t2 := &fe{}, &fe{}, &fe{}
 
-	// z0
-	mul(s1, z1, x2)
-	add(t3, s1, d4)
-	mul(t4, t3, nonResidue1) // TODO: check
-	addAssign(t4, d0)
-	z0.set(t4)
+	mul(t0, &a[0][0], x0)
+	mul(t1, tmp1, &a[1][2])
+	mul(t2, tmp2, &a[1][1])
+	add(&a[0][0], t0, t1)
+	addAssign(&a[0][0], t2)
 
-	// z1
-	mul(t3, z5, x4)
-	add(s1, s1, t3)
-	add(t3, t3, d2)
-	mul(t4, t3, nonResidue1)
-	mul(t3, z1, x0)
-	addAssign(s1, t3)
-	addAssign(t4, t3)
-	z1.set(t4)
+	mul(t0, x0, &a[0][1])
+	mul(t1, x3, &a[1][0])
+	mul(t2, tmp2, &a[1][2])
+	add(&a[0][1], t0, t1)
+	addAssign(&a[0][1], t2)
 
-	// z2
-	add(t0, x0, x2)
-	mul(t3, t1, t0)
-	subAssign(t3, d0)
-	subAssign(t3, d2)
-	mul(t4, z3, x4)
-	addAssign(s1, t4)
-	addAssign(t3, t4)
+	mul(t0, x0, &a[0][2])
+	mul(t1, x3, &a[1][1])
+	mul(t2, x4, &a[1][0])
+	add(&a[0][2], t0, t1)
+	addAssign(&a[0][2], t2)
 
-	// z3
-	add(t0, z2, z4)
-	z2.set(t3)
-	add(t1, x2, x4)
-	mul(t3, t0, t1)
-	subAssign(t3, d2)
-	subAssign(t3, d4)
-	mul(t4, t3, nonResidue1)
-	mul(t3, z3, x0)
-	addAssign(s1, t3)
-	addAssign(t4, t3)
-	z3.set(t4)
+	mul(t0, x0, &a[1][0])
+	mul(t1, x3, &a[0][0])
+	mul(t2, tmp2, &a[0][2])
+	add(&a[1][0], t0, t1)
+	addAssign(&a[1][0], t2)
 
-	// z4
-	mul(t3, z5, x2)
-	addAssign(s1, t3)
-	mul(t4, t3, nonResidue1)
-	add(t0, x0, x4)
-	mul(t3, t2, t0)
-	subAssign(t3, d0)
-	subAssign(t3, d4)
-	addAssign(t4, t3)
-	z4.set(t4)
+	mul(t0, x0, &a[1][1])
+	mul(t1, x3, &a[0][1])
+	mul(t2, x4, &a[0][0])
+	add(&a[1][1], t0, t1)
+	addAssign(&a[1][1], t2)
 
-	// z5
-	add(t0, x0, x2)
-	addAssign(t0, x4)
-	add(t3, s0, t0)
-	subAssign(t3, s1)
-	z5.set(t3)
-
-	// result
-	a[0][0].set(z0)
-	a[0][1].set(z1)
-	a[0][2].set(z2)
-	a[1][0].set(z3)
-	a[1][1].set(z4)
-	a[1][2].set(z5)
+	mul(t0, x0, &a[1][2])
+	mul(t1, x3, &a[0][2])
+	mul(t2, x4, &a[0][1])
+	add(&a[1][2], t0, t1)
+	addAssign(&a[1][2], t2)
 }
 
 // TODO: zexe uses different name which is mul by 034
@@ -354,7 +324,7 @@ func (e *fp6) mulBy024Assign(a *fe6, c0, c1, c2 *fe) {
 // in sparse multiplication of a*b
 // a = (a00 + a01*u + a02*u^2) + (a10 + a11*u + a12*u^2)
 // b = (b00 + 0 + 0) + (0 + b11*u + b12*u^2)
-func (e *fp6) mulBy045Assign(a *fe6, c0, c1, c2 *fe) {
+func (e *fp6) mulBy014Assign(a *fe6, c0, c1, c4 *fe) {
 	z0, z1, z2, z3, z4, z5 := &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}
 	z0.set(&a[0][0])
 	z1.set(&a[0][1])
@@ -363,55 +333,54 @@ func (e *fp6) mulBy045Assign(a *fe6, c0, c1, c2 *fe) {
 	z4.set(&a[1][1])
 	z5.set(&a[1][2])
 
-	x0, x4, x5 := &fe{}, &fe{}, &fe{}
+	x0, x1, x4 := &fe{}, &fe{}, &fe{}
 	x0.set(c0)
-	x4.set(c1)
-	x5.set(c2)
+	x1.set(c1)
+	x4.set(c4)
 
-	t0, t1, t2, t3, t4, t5, t6, t7, t8 := &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}
+	t0, t1, t2 := &fe{}, &fe{}, &fe{}
 
-	mul(t6, x4, nonResidue1)
-	mul(t7, x5, nonResidue1)
+	tmp1, tmp2 := new(fe), new(fe)
+
+	mul(tmp1, x1, nonResidue1)
+
+	mul(tmp2, x4, nonResidue1)
 
 	mul(t0, x0, z0)
-	mul(t8, t6, z4)
-	addAssign(t0, t8)
-	mul(t8, t7, z3)
-	addAssign(t0, t8)
 
-	mul(t1, x0, z1)
-	mul(t8, t6, z5)
-	addAssign(t1, t8)
-	mul(t8, t7, z4)
-	addAssign(t1, t8)
+	mul(t1, tmp1, z2)
+	mul(t2, tmp2, z4)
+	add(&a[0][0], t0, t1)
+	addAssign(&a[0][0], t2)
 
-	mul(t2, x0, z2)
-	mul(t8, x4, z3)
-	addAssign(t2, t8)
-	mul(t8, t7, z1)
+	mul(t0, x0, z1)
 
-	mul(t3, x0, z3)
-	mul(t8, t6, z2)
-	addAssign(t3, t8)
-	mul(t8, t7, z1)
-	addAssign(t3, t8)
+	mul(t1, x1, z0)
+	mul(t2, tmp2, z5)
+	add(&a[0][1], t0, t1)
+	addAssign(&a[0][1], t2)
 
-	mul(t4, x0, z4)
-	mul(t8, x4, z0)
-	addAssign(t4, t8)
-	mul(t8, t7, z2)
-	addAssign(t4, t8)
+	mul(t0, x0, z2)
+	mul(t1, x1, z1)
+	mul(t2, x4, z3)
+	add(&a[0][2], t0, t1)
+	addAssign(&a[0][2], t2)
 
-	mul(t5, x0, z5)
-	mul(t8, x4, z1)
-	addAssign(t5, t8)
-	mul(t8, x5, z0)
-	addAssign(t5, t8)
+	mul(t0, x0, z3)
+	mul(t1, tmp1, z5)
+	mul(t2, tmp2, z2)
+	add(&a[1][0], t0, t1)
+	addAssign(&a[1][0], t2)
 
-	a[0][0].set(z0)
-	a[0][1].set(z1)
-	a[0][2].set(z2)
-	a[1][0].set(z3)
-	a[1][1].set(z4)
-	a[1][2].set(z5)
+	mul(t0, x0, z4)
+	mul(t1, x1, z3)
+	mul(t2, x4, z0)
+	add(&a[1][1], t0, t1)
+	addAssign(&a[1][1], t2)
+
+	mul(t0, x0, z5)
+	mul(t1, x1, z4)
+	mul(t2, x4, z1)
+	add(&a[1][2], t0, t1)
+	addAssign(&a[1][2], t2)
 }

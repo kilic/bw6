@@ -3,10 +3,20 @@ package bw6
 import (
 	"crypto/rand"
 	"errors"
+	"flag"
 	"math/big"
+	"os"
+	"testing"
 )
 
-var fuz = 100
+var fuz int
+
+func TestMain(m *testing.M) {
+	_fuz := flag.Int("fuzz", 10, "# of iterations")
+	flag.Parse()
+	fuz = *_fuz
+	os.Exit(m.Run())
+}
 
 func padBytes(in []byte, size int) []byte {
 	out := make([]byte, size)

@@ -64,7 +64,7 @@ func (g *G2) Q() *big.Int {
 // (0, 0) is considered as infinity.
 func (g *G2) FromBytes(in []byte) (*PointG2, error) {
 	if len(in) != 2*FE_BYTE_SIZE {
-		return nil, errors.New("input string should be equal or larger than 96")
+		return nil, errors.New("input string should be 192 bytes")
 	}
 	x, err := fromBytes(in[:FE_BYTE_SIZE])
 	if err != nil {
@@ -159,15 +159,15 @@ func (g *G2) IsOnCurve(p *PointG2) bool {
 	if p.IsAffine() {
 		addAssign(t[1], b2)     // x^2 + b
 		return t[0].equal(t[1]) // y^2 ?= x^3 + b
-	} else {
-		square(t[2], &p[2])   // z^2
-		square(t[3], t[2])    // z^4
-		mul(t[2], t[2], t[3]) // z^6
-		doubleAssign(t[2])
-		doubleAssign(t[2])      // b*z^6
-		addAssign(t[1], t[2])   // x^3 + b * z^6
-		return t[0].equal(t[1]) // y^2 ?= x^3 + b * z^6
 	}
+	square(t[2], &p[2])   // z^2
+	square(t[3], t[2])    // z^4
+	mul(t[2], t[2], t[3]) // z^6
+	doubleAssign(t[2])
+	doubleAssign(t[2])      // b*z^6
+	addAssign(t[1], t[2])   // x^3 + b * z^6
+	return t[0].equal(t[1]) // y^2 ?= x^3 + b * z^6
+
 }
 
 // Affine returns the affine representation of the given point

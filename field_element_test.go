@@ -129,13 +129,13 @@ func TestFieldElementByteInputs(t *testing.T) {
 	if !a.equal(zero) {
 		t.Fatal("bad serialization")
 	}
-	in = make([]byte, 64)
+	in = make([]byte, FE_BYTE_SIZE+200)
 	a = new(fe).setBytes(in)
 	if !a.equal(zero) {
 		t.Fatal("bad serialization")
 	}
-	in = make([]byte, 97)
-	in[95] = 1
+	in = make([]byte, FE_BYTE_SIZE+1)
+	in[FE_BYTE_SIZE-1] = 1
 	normalOne := &fe{1}
 	a = new(fe).setBytes(in)
 	if !a.equal(normalOne) {

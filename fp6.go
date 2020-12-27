@@ -6,7 +6,8 @@ import (
 )
 
 type fp6Temp struct {
-	t [4]*fe3
+	t  [4]*fe3
+	t1 [7]*fe
 }
 
 type fp6 struct {
@@ -16,10 +17,14 @@ type fp6 struct {
 
 func newFp6Temp() fp6Temp {
 	t := [4]*fe3{}
+	t1 := [7]*fe{}
 	for i := 0; i < len(t); i++ {
 		t[i] = &fe3{}
 	}
-	return fp6Temp{t}
+	for i := 0; i < len(t1); i++ {
+		t1[i] = &fe{}
+	}
+	return fp6Temp{t, t1}
 }
 
 func newFp6(f *fp3) *fp6 {
@@ -142,6 +147,31 @@ func (e *fp6) mul(c, a, b *fe6) {
 	fp3.add(&c[0], t[1], t[2]) // c0 = v0 - ßv1
 }
 
+func (e *fp6) fp2Square(c0, c1, a0, a1 *fe) {
+	// Guide to Pairing Based Cryptography
+	// Algorithm 5.16
+
+	t2, t3 := new(fe), new(fe)
+
+	sub(c0, a0, a1)
+
+	double(t3, a1)
+	double(t3, t3)
+	neg(t3, t3)
+
+	sub(t3, a0, t3)
+	mul(t2, a0, a1)
+	mul(c0, c0, t3)
+	add(c0, c0, t2)
+	add(c1, t2, t2)
+
+	double(t3, t2)
+	double(t3, t3)
+	neg(t3, t3)
+
+	add(c0, c0, t3)
+}
+
 func (e *fp6) square(c, a *fe6) {
 	e.squareComplex(c, a)
 }
@@ -196,6 +226,42 @@ func (e *fp6) squareComplex(c, a *fe6) {
 	fp3.double(&c[1], t[1])    // 2v0
 }
 
+func (e *fp6) cyclotomicSquaring(c, a *fe6) {
+	t := e.t1
+	// Guide to Pairing Based Cryptography
+	// 5.5.4 Airthmetic in Cyclotomic Groups
+
+	e.fp2Square(t[3], t[4], &a[0][0], &a[1][1])
+
+	sub(t[2], t[3], &a[0][0])
+	double(t[2], t[2])
+	add(&c[0][0], t[2], t[3])
+	add(t[2], t[4], &a[1][1])
+	double(t[2], t[2])
+	add(&c[1][1], t[2], t[4])
+
+	e.fp2Square(t[3], t[4], &a[1][0], &a[0][2])
+	e.fp2Square(t[5], t[6], &a[0][1], &a[1][2])
+
+	sub(t[2], t[3], &a[0][1])
+	double(t[2], t[2])
+	add(&c[0][1], t[2], t[3])
+	add(t[2], t[4], &a[1][2])
+	double(t[2], t[2])
+	add(&c[1][2], t[2], t[4])
+
+	double(t[3], t[6])
+	double(t[3], t[3])
+	neg(t[3], t[3])
+
+	add(t[2], t[3], &a[1][0])
+	double(t[2], t[2])
+	add(&c[1][0], t[2], t[3])
+	sub(t[2], t[5], &a[0][2])
+	double(t[2], t[2])
+	add(&c[0][2], t[2], t[5])
+}
+
 func (e *fp6) inverse(c, a *fe6) {
 	// Guide to Pairing Based Cryptography
 	// Algorithm 5.19
@@ -222,31 +288,6 @@ func (e *fp6) exp(c, a *fe6, s *big.Int) {
 			e.mul(z, z, a)
 		}
 	}
-	c.set(z)
-}
-func (e *fp6) optimized_exp(c, a *fe6, s *big.Int) {
-	naf := computeNaf(s)
-
-	z := e.one()
-
-	inv := new(fe6)
-	e.inverse(inv, a)
-	foundNonZero := false
-	for i := len(naf) - 1; i >= 0; i-- {
-		if foundNonZero {
-			e.square(z, z)
-		}
-		switch naf[i] {
-		case 1:
-			foundNonZero = true
-			e.mul(z, z, a)
-		case -1:
-			foundNonZero = true
-			e.mul(z, z, inv)
-		}
-
-	}
-
 	c.set(z)
 }
 

@@ -377,23 +377,23 @@ func (e *Engine) millerLoop(f *fe6) {
 func (e *Engine) exp(c, a *fe6) {
 	fp6 := e.fp6
 	t0, t1, t2 := new(fe6).set(a), new(fe6), new(fe6)
-	fp6.square(c, t0)
+	fp6.cyclotomicSquaring(c, t0)
 	fp6.mul(t1, t0, c)
 	for i := 0; i < 4; i++ {
-		fp6.square(c, c)
+		fp6.cyclotomicSquaring(c, c)
 	}
 	fp6.mul(t2, c, t0)
-	fp6.square(c, t2)
+	fp6.cyclotomicSquaring(c, t2)
 	for i := 0; i < 6; i++ {
-		fp6.square(c, c)
+		fp6.cyclotomicSquaring(c, c)
 	}
 	fp6.mul(c, c, t2)
 	for i := 0; i < 5; i++ {
-		fp6.square(c, c)
+		fp6.cyclotomicSquaring(c, c)
 	}
 	fp6.mul(c, c, t1)
 	for i := 0; i < 46; i++ {
-		fp6.square(c, c)
+		fp6.cyclotomicSquaring(c, c)
 	}
 	fp6.mul(c, c, t0)
 }

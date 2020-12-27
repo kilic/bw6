@@ -243,7 +243,6 @@ func (e *Engine) additionStep(coeff *[3]fe, r, q *Point) {
 	}
 }
 
-// compute
 func (e *Engine) preCompute(ellCoeffs *[288][3]fe, twistPoint *Point) {
 	if e.g.IsZero(twistPoint) {
 		return
@@ -375,14 +374,28 @@ func (e *Engine) millerLoop(f *fe6) {
 	e.fp6.mul(f, f1, f2)
 }
 
-func (e *Engine) expByX(c, a *fe6) {
-	e.fp6.exp(c, a, x) // TODO use cyclotomic exp
-	// e.fp6.optimized_exp(c, a, x) // TODO use cyclotomic exp
-	xIsNeg := false
-	if xIsNeg {
-		e.fp6.conjugate(c, c)
+func (e *Engine) exp(c, a *fe6) {
+	fp6 := e.fp6
+	t0, t1, t2 := new(fe6).set(a), new(fe6), new(fe6)
+	fp6.square(c, t0)
+	fp6.mul(t1, t0, c)
+	for i := 0; i < 4; i++ {
+		fp6.square(c, c)
 	}
-
+	fp6.mul(t2, c, t0)
+	fp6.square(c, t2)
+	for i := 0; i < 6; i++ {
+		fp6.square(c, c)
+	}
+	fp6.mul(c, c, t2)
+	for i := 0; i < 5; i++ {
+		fp6.square(c, c)
+	}
+	fp6.mul(c, c, t1)
+	for i := 0; i < 46; i++ {
+		fp6.square(c, c)
+	}
+	fp6.mul(c, c, t0)
 }
 
 // (q^k-1)/r where k = 6
@@ -411,36 +424,36 @@ func (e *Engine) finalExp(f *fe6) {
 	fp6.frobeniusMap(f0p, f0, 1)
 
 	f1, f1p := new(fe6), new(fe6)
-	e.expByX(f1, f0)
+	e.exp(f1, f0)
 	fp6.frobeniusMap(f1p, f1, 1)
 
 	f2, f2p := new(fe6), new(fe6)
-	e.expByX(f2, f1)
+	e.exp(f2, f1)
 	fp6.frobeniusMap(f2p, f2, 1)
 
 	f3, f3p := new(fe6), new(fe6)
-	e.expByX(f3, f2)
+	e.exp(f3, f2)
 	fp6.frobeniusMap(f3p, f3, 1)
 
 	f4, f4p := new(fe6), new(fe6)
-	e.expByX(f4, f3)
+	e.exp(f4, f3)
 	fp6.frobeniusMap(f4p, f4, 1)
 
 	f5, f5p := new(fe6), new(fe6)
-	e.expByX(f5, f4)
+	e.exp(f5, f4)
 	fp6.frobeniusMap(f5p, f5, 1)
 
 	f6, f6p := new(fe6), new(fe6)
-	e.expByX(f6, f5)
+	e.exp(f6, f5)
 	fp6.frobeniusMap(f6p, f6, 1)
 
 	f7, f7p := new(fe6), new(fe6)
-	e.expByX(f7, f6)
+	e.exp(f7, f6)
 	fp6.frobeniusMap(f7p, f7, 1)
 
 	f8p, f9p := new(fe6), new(fe6)
-	e.expByX(f8p, f7p)
-	e.expByX(f9p, f8p)
+	e.exp(f8p, f7p)
+	e.exp(f9p, f8p)
 
 	// step 5
 	result1, f5pp3 := new(fe6), new(fe6)

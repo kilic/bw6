@@ -52,11 +52,19 @@ func (g *G) randG2() *Point {
 }
 
 func (g *G) randG1Correct() *Point {
-	return g.ClearG1Cofactor(g.randG1())
+	p := g.ClearG1Cofactor(g.randG1())
+	if !g.InCorrectSubgroup(p) {
+		panic("must be in correct subgroup")
+	}
+	return p
 }
 
 func (g *G) randG2Correct() *Point {
-	return g.ClearG2Cofactor(g.randG2())
+	p := g.ClearG2Cofactor(g.randG2())
+	if !g.InCorrectSubgroup(p) {
+		panic("must be in correct subgroup")
+	}
+	return p
 }
 
 func (g *G) randG1Affine() *Point {
@@ -72,11 +80,28 @@ func (g *G) new() *Point {
 }
 
 func TestGroupSerialization(t *testing.T) {
+	var err error
 	g := NewG()
+	zero := g.Zero()
+	b0 := g.ToBytes(zero)
+	p0, err := g.G1FromBytes(b0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !g.IsZero(p0) {
+		t.Fatal("infinity serialization failed")
+	}
+	p0, err = g.G2FromBytes(b0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !g.IsZero(p0) {
+		t.Fatal("infinity serialization failed")
+	}
 	for i := 0; i < fuz; i++ {
 		a1 := g.randG1()
-		uncompressed := g.ToBytes(a1)
-		b1, err := g.G1FromBytes(uncompressed)
+		b0 := g.ToBytes(a1)
+		b1, err := g.G1FromBytes(b0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -86,8 +111,8 @@ func TestGroupSerialization(t *testing.T) {
 	}
 	for i := 0; i < fuz; i++ {
 		a1 := g.randG2()
-		uncompressed := g.ToBytes(a1)
-		b1, err := g.G2FromBytes(uncompressed)
+		b0 := g.ToBytes(a1)
+		b1, err := g.G2FromBytes(b0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -113,6 +138,26 @@ func TestGroupIsOnCurve(t *testing.T) {
 	}
 	if g.IsOnG2Curve(p) {
 		t.Fatal("(1, 1) is not on curve")
+	}
+}
+
+func TestGroupBatchAffine(t *testing.T) {
+	n := 20
+	g := NewG()
+	points0 := make([]*Point, n)
+	points1 := make([]*Point, n)
+	for i := 0; i < n; i++ {
+		points0[i] = g.randG1()
+		points1[i] = g.New().Set(points0[i])
+		if g.IsAffine(points0[i]) {
+			t.Fatal("expect non affine point")
+		}
+	}
+	g.AffineBatch(points0)
+	for i := 0; i < n; i++ {
+		if !g.Equal(points0[i], points1[i]) {
+			t.Fatal("batch affine failed")
+		}
 	}
 }
 
@@ -181,6 +226,48 @@ func TestGroupAdditiveProperties(t *testing.T) {
 		g.Sub(t1, t1, b)
 		if !g.Equal(t0, t1) {
 			t.Fatal("(a - b) - c == (a - c) -b")
+		}
+	}
+}
+
+func TestG1MixedAdd(t *testing.T) {
+	g := NewG()
+
+	t0, a := g.New(), g.randG1()
+	zero := g.Zero()
+
+	g.AddMixed(t0, a, zero)
+	if !g.Equal(t0, a) {
+		t.Fatal("a + 0 == a")
+	}
+	g.AddMixed(a, t0, zero)
+	if !g.Equal(t0, a) {
+		t.Fatal("a + 0 == a")
+	}
+	g.Add(t0, zero, zero)
+	if !g.Equal(t0, zero) {
+		t.Fatal("0 + 0 == 0")
+	}
+
+	for i := 0; i < fuz; i++ {
+		a, b := g.randG1(), g.randG1()
+		if g.IsAffine(a) || g.IsAffine(b) {
+			t.Fatal("expect non affine points")
+		}
+		bAffine := g.New().Set(b)
+		g.Affine(bAffine)
+		r0, r1 := g.New(), g.New()
+		g.Add(r0, a, b)
+		g.AddMixed(r1, a, bAffine)
+		if !g.Equal(r0, r1) {
+			t.Fatal("mixed addition failed")
+		}
+		aAffine := g.New().Set(a)
+		g.Affine(aAffine)
+		g.AddMixed(r0, a, aAffine)
+		g.Double(r1, a)
+		if !g.Equal(r0, r1) {
+			t.Fatal("mixed addition must double where points are equal")
 		}
 	}
 }
@@ -317,7 +404,7 @@ func TestGroupMultiExpExpected(t *testing.T) {
 	g.mulScalar(expected, one, big.NewInt(5))
 	_, _ = g.MultiExp(result, bases[:], scalars[:])
 	if !g.Equal(expected, result) {
-		t.Fatal("bad multi-exponentiation")
+		t.Fatal("multi-exponentiation failed")
 	}
 }
 
@@ -448,5 +535,32 @@ func BenchmarkG1MultiExp(t *testing.B) {
 				_, _ = g.MultiExp(result, bases, scalars)
 			}
 		})
+	}
+}
+
+func BenchmarkGroupClearCofactor(t *testing.B) {
+	g := NewG()
+	t.Run("G1", func(t *testing.B) {
+		a := g.randG1()
+		t.ResetTimer()
+		for i := 0; i < t.N; i++ {
+			g.ClearG1Cofactor(a)
+		}
+	})
+	t.Run("G2", func(t *testing.B) {
+		a := g.randG2()
+		t.ResetTimer()
+		for i := 0; i < t.N; i++ {
+			g.ClearG2Cofactor(a)
+		}
+	})
+}
+
+func BenchmarkGroupSubgroupCheck(t *testing.B) {
+	g := NewG()
+	a := g.randG1()
+	t.ResetTimer()
+	for i := 0; i < t.N; i++ {
+		g.InCorrectSubgroup(a)
 	}
 }

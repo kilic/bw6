@@ -170,13 +170,6 @@ func (g *G) Equal(p1, p2 *Point) bool {
 	return t[0].equal(t[1]) && t[2].equal(t[3])
 }
 
-// InCorrectSubgroup checks whether given point is in correct subgroup.
-func (g *G) InCorrectSubgroup(p *Point) bool {
-	tmp := &Point{}
-	g.mulScalar(tmp, p, q)
-	return g.IsZero(tmp)
-}
-
 // IsOnG1Curve checks if G1 point is on curve.
 func (g *G) IsOnG1Curve(p *Point) bool {
 	if g.IsZero(p) {
@@ -544,16 +537,6 @@ func (g *G) glvMul(r, p0 *Point, v *glvVector, endoFn func(r, p *Point)) *Point 
 	return r.Set(acc)
 }
 
-// ClearG1Cofactor maps given a G1 point to correct subgroup
-func (g *G) ClearG1Cofactor(p *Point) *Point {
-	return g.wnafMul(p, p, cofactorG1)
-}
-
-// ClearG2Cofactor maps given a G1 point to correct subgroup
-func (g *G) ClearG2Cofactor(p *Point) *Point {
-	return g.wnafMul(p, p, cofactorG2)
-}
-
 // MultiExp calculates multi exponentiation. Given pairs of G point and scalar values
 // (P_0, e_0), (P_1, e_1), ... (P_n, e_n) calculates r = e_0 * P_0 + e_1 * P_1 + ... + e_n * P_n
 // Length of points and scalars are expected to be equal, otherwise an error is returned.
@@ -600,4 +583,21 @@ func (g *G) MultiExp(r *Point, points []*Point, scalars []*big.Int) (*Point, err
 		g.Add(acc, acc, &windows[i])
 	}
 	return r.Set(acc), nil
+}
+
+// ClearG1Cofactor maps given a G1 point to correct subgroup
+func (g *G) ClearG1Cofactor(p *Point) *Point {
+	return g.wnafMul(p, p, cofactorG1)
+}
+
+// ClearG2Cofactor maps given a G1 point to correct subgroup
+func (g *G) ClearG2Cofactor(p *Point) *Point {
+	return g.wnafMul(p, p, cofactorG2)
+}
+
+// InCorrectSubgroup checks whether given point is in correct subgroup.
+func (g *G) InCorrectSubgroup(p *Point) bool {
+	tmp := &Point{}
+	g.wnafMul(tmp, p, q)
+	return g.IsZero(tmp)
 }

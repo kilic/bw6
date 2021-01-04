@@ -46,11 +46,9 @@ var pMinus1Over2 = bigFromHex("0x9174127dc1e70568c3e4a0027d7f9f5c930c3540e8a3442
 
 // parameter of p where p is actuall parameterized polynomial p(x)
 var x = bigFromHex("0x8508c00000000001")
-var xIsNeg = false
 var ateLoop1 = bigFromHex("0x8508c00000000002")
-var ateLoop1Neg = false
-var ateLoop2 = computeNaf(bigFromHex("0x23ed1347970dec008a442f991fffffffffffffffffffffff"))
-var ateLoop2Neg = false
+var ateLoop2 = bigFromHex("0x23ed1347970dec008a442f991fffffffffffffffffffffff")
+var ateLoop2NAF = bigToWNAF(ateLoop2, 1)
 
 /*
 	Curve
@@ -89,9 +87,6 @@ var g2One = Point{
 	*new(fe).set(one),
 }
 
-// G2 Twist type
-var twistType = TWIST_TYPE_M
-
 /*
 	Frobenius Coefficients
 */
@@ -116,6 +111,3 @@ var frobeniusCoeffs6 = [6]fe{
 	fe{0x67a04ae427bfb5f8, 0x9d32d491eb6a5cff, 0x43d03c1cb68051d4, 0x0b75ca96f69859a5, 0x0763497f5325ec60, 0x48076b5c278dd94d, 0x8ca3965ff91efd06, 0x1e6077657ea02f5d, 0xcdd6c153a8c37724, 0x28b5b634e5c22ea4, 0x9e01e3efd42e902c, 0x00e3d6815769a804},
 	fe{0x75064ae427bf3b42, 0x10f9bc5f0b69e963, 0xcc5cb1b14e0f587b, 0x4d3fb306af152ea1, 0x827040e0fccea53d, 0x82640a1166dbffc8, 0x30228120b0181307, 0xd137b92adf4a6748, 0xf6aaa3e430ed815e, 0xb514282e4b01ea4b, 0xa422396b6e993acc, 0x0012e5db4d0dc277},
 }
-
-// x
-// var x = bigFromHex("0x8508c00000000001")

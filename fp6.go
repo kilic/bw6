@@ -6,8 +6,8 @@ import (
 )
 
 type fp6Temp struct {
-	t  [4]*fe3
-	t1 [7]*fe
+	t3 [4]*fe3
+	t1 [11]*fe
 }
 
 type fp6 struct {
@@ -16,15 +16,15 @@ type fp6 struct {
 }
 
 func newFp6Temp() fp6Temp {
-	t := [4]*fe3{}
-	t1 := [7]*fe{}
-	for i := 0; i < len(t); i++ {
-		t[i] = &fe3{}
+	t3 := [4]*fe3{}
+	t1 := [11]*fe{}
+	for i := 0; i < len(t3); i++ {
+		t3[i] = &fe3{}
 	}
 	for i := 0; i < len(t1); i++ {
 		t1[i] = &fe{}
 	}
-	return fp6Temp{t, t1}
+	return fp6Temp{t3, t1}
 }
 
 func newFp6(f *fp3) *fp6 {
@@ -37,7 +37,7 @@ func newFp6(f *fp3) *fp6 {
 
 func (e *fp6) fromBytes(in []byte) (*fe6, error) {
 	if len(in) != 6*fpByteSize {
-		return nil, errors.New("input string should be larger than 96 bytes")
+		return nil, errors.New("input string length must be equal to 576 bytes")
 	}
 	fp3 := e.fp3
 	c0, err := fp3.fromBytes(in[:3*fpByteSize])
@@ -132,44 +132,99 @@ func (e *fp6) mul(c, a, b *fe6) {
 	// Karatsuba multiplication algorithm
 	// https://eprint.iacr.org/2006/471
 
-	fp3, t := e.fp3, e.t
+	fp3, t := e.fp3, e.t3
 
 	fp3.mul(t[1], &a[0], &b[0]) // v0 = a0b0
 	fp3.mul(t[2], &a[1], &b[1]) // v1 = a1b1
 
-	fp3.add(t[0], &a[0], &a[1]) // a0 + a1
-	fp3.add(t[3], &b[0], &b[1]) // b0 + b1
-	fp3.mul(t[0], t[0], t[3])   // (a0 + a1)(b0 + b1)
-	fp3.sub(t[0], t[0], t[1])   // (a0 + a1)(b0 + b1) - v0
-	fp3.sub(&c[1], t[0], t[2])  // c1 = (a0 + a1)(b0 + b1) - v0 - v1
+	fp3.ladd(t[0], &a[0], &a[1]) // a0 + a1
+	fp3.ladd(t[3], &b[0], &b[1]) // b0 + b1
+	fp3.mul(t[0], t[0], t[3])    // (a0 + a1)(b0 + b1)
+	fp3.sub(t[0], t[0], t[1])    // (a0 + a1)(b0 + b1) - v0
+	fp3.sub(&c[1], t[0], t[2])   // c1 = (a0 + a1)(b0 + b1) - v0 - v1
 
 	fp3.mulByNonResidue(t[2], t[2])
 	fp3.add(&c[0], t[1], t[2]) // c0 = v0 - ßv1
 }
 
+func (e *fp6) mulBy014Assign(a *fe6, c0, c1, c4 *fe) {
+
+	t := e.t1
+
+	t[6].set(&a[0][0])
+	t[7].set(&a[0][1])
+	t[8].set(&a[0][2])
+	t[9].set(&a[1][0])
+	t[10].set(&a[1][1])
+
+	double(t[4], c1)
+	doubleAssign(t[4])
+	neg(t[4], t[4])
+
+	mul(t[1], t[4], t[8])
+
+	double(t[5], c4)
+	doubleAssign(t[5])
+	neg(t[5], t[5])
+	mul(t[2], t[5], t[10])
+
+	mul(t[0], c0, t[6])
+
+	add(&a[0][0], t[0], t[1])
+	addAssign(&a[0][0], t[2])
+
+	mul(t[0], c0, t[7])
+
+	mul(t[1], c1, t[6])
+	mul(t[2], t[5], &a[1][2])
+	add(&a[0][1], t[0], t[1])
+	addAssign(&a[0][1], t[2])
+
+	mul(t[0], c0, t[8])
+	mul(t[1], c1, t[7])
+	mul(t[2], c4, t[9])
+	add(&a[0][2], t[0], t[1])
+	addAssign(&a[0][2], t[2])
+
+	mul(t[0], c0, t[9])
+	mul(t[1], t[4], &a[1][2])
+	mul(t[2], t[5], t[8])
+	add(&a[1][0], t[0], t[1])
+	addAssign(&a[1][0], t[2])
+
+	mul(t[0], c0, t[10])
+	mul(t[1], c1, t[9])
+	mul(t[2], c4, t[6])
+	add(&a[1][1], t[0], t[1])
+	addAssign(&a[1][1], t[2])
+
+	mul(t[0], c0, &a[1][2])
+	mul(t[1], c1, t[10])
+	mul(t[2], c4, t[7])
+	add(&a[1][2], t[0], t[1])
+	addAssign(&a[1][2], t[2])
+}
+
 func (e *fp6) fp2Square(c0, c1, a0, a1 *fe) {
 	// Guide to Pairing Based Cryptography
-	// Algorithm 5.16
+	// Algorithm 5.17
 
-	t2, t3 := new(fe), new(fe)
+	t := e.t1 // use 7,8
 
-	sub(c0, a0, a1)
+	sub(c0, a0, a1) // v0 = a0 - a1
 
-	double(t3, a1)
-	double(t3, t3)
-	neg(t3, t3)
+	ldouble(t[7], a1)
+	ldoubleAssign(t[7]) // -ßa1
 
-	sub(t3, a0, t3)
-	mul(t2, a0, a1)
-	mul(c0, c0, t3)
-	add(c0, c0, t2)
-	add(c1, t2, t2)
+	laddAssign(t[7], a0) // v3 = (a0 - ßa1)
+	mul(c0, c0, t[7])    // v0 * v3
+	mul(t[8], a0, a1)    // v2 = a0a1
+	addAssign(c0, t[8])  // v0 = (v0 * v3) + v2
+	double(c1, t[8])     // c1 = 2v0
 
-	double(t3, t2)
-	double(t3, t3)
-	neg(t3, t3)
-
-	add(c0, c0, t3)
+	double(t[7], t[8])
+	doubleAssign(t[7])  // -αv2
+	subAssign(c0, t[7]) // v0 - αv2
 }
 
 func (e *fp6) square(c, a *fe6) {
@@ -186,7 +241,7 @@ func (e *fp6) squareKaratsuba(c, a *fe6) {
 	// c0 = v0 + αv1 = v0 - ßv1
 	// c1 = (a0 + a1)^2 - v0 - v1
 
-	fp3, t := e.fp3, e.t
+	fp3, t := e.fp3, e.t3
 	fp3.square(t[0], &a[0]) // v0 = a0^2
 	fp3.square(t[1], &a[1]) // v1 = a1^2
 
@@ -211,19 +266,19 @@ func (e *fp6) squareComplex(c, a *fe6) {
 	// v0 = a0a1
 	// c0 = (a0 + a1)(a0 + ßa1) - v0 - ßv0
 	// c1 = 2v0
-	fp3, t := e.fp3, e.t
+	fp3, t := e.fp3, e.t3
 	fp3.mulByNonResidue(t[0], &a[1]) // ßa1
 	fp3.mul(t[1], &a[0], &a[1])      // v0 = a0a1
 	fp3.mulByNonResidue(t[2], t[1])  // ßv0
 
-	fp3.add(t[0], t[0], &a[0]) // a0 + ßa1
-	fp3.add(t[2], t[2], t[1])  // v0 + ßv0
+	fp3.ladd(t[0], t[0], &a[0]) // a0 + ßa1
+	fp3.add(t[2], t[2], t[1])   // v0 + ßv0
 
-	fp3.add(t[3], &a[0], &a[1]) // a0 + a1
-	fp3.mul(t[0], t[0], t[3])   // (a0 + a1)(a0 + ßa1)
+	fp3.ladd(t[3], &a[0], &a[1]) // a0 + a1
+	fp3.mul(t[0], t[0], t[3])    // (a0 + a1)(a0 + ßa1)
 
-	fp3.sub(&c[0], t[0], t[2]) // (a0 + a1)(a0 + ßa1) - v0 - ßv0
-	fp3.double(&c[1], t[1])    // 2v0
+	fp3.sub(&c[0], t[0], t[2]) // c0 = (a0 + a1)(a0 + ßa1) - v0 - ßv0
+	fp3.double(&c[1], t[1])    // c1 = 2v0
 }
 
 func (e *fp6) cyclotomicSquaring(c, a *fe6) {
@@ -266,7 +321,7 @@ func (e *fp6) inverse(c, a *fe6) {
 	// Guide to Pairing Based Cryptography
 	// Algorithm 5.19
 
-	fp3, t := e.fp3, e.t
+	fp3, t := e.fp3, e.t3
 
 	fp3.square(t[0], &a[0]) // a0^2
 	fp3.square(t[1], &a[1]) // a1^2
@@ -296,132 +351,4 @@ func (e *fp6) frobeniusMap(c, a *fe6, power int) {
 	fp3.frobeniusMap(&c[0], &a[0], power)
 	fp3.frobeniusMap(&c[1], &a[1], power)
 	fp3.mul0(&c[1], &c[1], &frobeniusCoeffs6[power%6])
-}
-
-// TODO: zexe uses different name which is mul by 034
-// lets say {a,b} $\in$ Fp6 where
-// in sparse multiplication of a*b
-// a = (a00 + a01*u + a02*u^2) + (a10 + a11*u + a12* u^2)
-// b = (b00 + 0 + b02*u^2) + (0 + b11*u + 0)
-func (e *fp6) mulBy034Assign(a *fe6, c0, c3, c4 *fe) {
-	// z0, z1, z2, z3, z4, z5 := &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}
-	// z0.set(&a[0][0])
-	// z1.set(&a[0][1])
-	// z2.set(&a[0][2])
-	// z3.set(&a[1][0])
-	// z4.set(&a[1][1])
-	// z5.set(&a[1][2])
-
-	x0, x3, x4 := &fe{}, &fe{}, &fe{}
-	x0.set(c0)
-	x3.set(c3)
-	x4.set(c4)
-
-	tmp1, tmp2 := new(fe), new(fe)
-	mul(tmp1, x3, nonResidue1)
-	mul(tmp2, x4, nonResidue1)
-
-	t0, t1, t2 := &fe{}, &fe{}, &fe{}
-
-	mul(t0, &a[0][0], x0)
-	mul(t1, tmp1, &a[1][2])
-	mul(t2, tmp2, &a[1][1])
-	add(&a[0][0], t0, t1)
-	addAssign(&a[0][0], t2)
-
-	mul(t0, x0, &a[0][1])
-	mul(t1, x3, &a[1][0])
-	mul(t2, tmp2, &a[1][2])
-	add(&a[0][1], t0, t1)
-	addAssign(&a[0][1], t2)
-
-	mul(t0, x0, &a[0][2])
-	mul(t1, x3, &a[1][1])
-	mul(t2, x4, &a[1][0])
-	add(&a[0][2], t0, t1)
-	addAssign(&a[0][2], t2)
-
-	mul(t0, x0, &a[1][0])
-	mul(t1, x3, &a[0][0])
-	mul(t2, tmp2, &a[0][2])
-	add(&a[1][0], t0, t1)
-	addAssign(&a[1][0], t2)
-
-	mul(t0, x0, &a[1][1])
-	mul(t1, x3, &a[0][1])
-	mul(t2, x4, &a[0][0])
-	add(&a[1][1], t0, t1)
-	addAssign(&a[1][1], t2)
-
-	mul(t0, x0, &a[1][2])
-	mul(t1, x3, &a[0][2])
-	mul(t2, x4, &a[0][1])
-	add(&a[1][2], t0, t1)
-	addAssign(&a[1][2], t2)
-}
-
-// TODO: zexe uses different name which is mul by 034
-// lets say {a,b} \in Fp6 where
-// in sparse multiplication of a*b
-// a = (a00 + a01*u + a02*u^2) + (a10 + a11*u + a12*u^2)
-// b = (b00 + 0 + 0) + (0 + b11*u + b12*u^2)
-func (e *fp6) mulBy014Assign(a *fe6, c0, c1, c4 *fe) {
-	z0, z1, z2, z3, z4, z5 := &fe{}, &fe{}, &fe{}, &fe{}, &fe{}, &fe{}
-	z0.set(&a[0][0])
-	z1.set(&a[0][1])
-	z2.set(&a[0][2])
-	z3.set(&a[1][0])
-	z4.set(&a[1][1])
-	z5.set(&a[1][2])
-
-	x0, x1, x4 := &fe{}, &fe{}, &fe{}
-	x0.set(c0)
-	x1.set(c1)
-	x4.set(c4)
-
-	t0, t1, t2 := &fe{}, &fe{}, &fe{}
-
-	tmp1, tmp2 := new(fe), new(fe)
-
-	mul(tmp1, x1, nonResidue1)
-
-	mul(tmp2, x4, nonResidue1)
-
-	mul(t0, x0, z0)
-
-	mul(t1, tmp1, z2)
-	mul(t2, tmp2, z4)
-	add(&a[0][0], t0, t1)
-	addAssign(&a[0][0], t2)
-
-	mul(t0, x0, z1)
-
-	mul(t1, x1, z0)
-	mul(t2, tmp2, z5)
-	add(&a[0][1], t0, t1)
-	addAssign(&a[0][1], t2)
-
-	mul(t0, x0, z2)
-	mul(t1, x1, z1)
-	mul(t2, x4, z3)
-	add(&a[0][2], t0, t1)
-	addAssign(&a[0][2], t2)
-
-	mul(t0, x0, z3)
-	mul(t1, tmp1, z5)
-	mul(t2, tmp2, z2)
-	add(&a[1][0], t0, t1)
-	addAssign(&a[1][0], t2)
-
-	mul(t0, x0, z4)
-	mul(t1, x1, z3)
-	mul(t2, x4, z0)
-	add(&a[1][1], t0, t1)
-	addAssign(&a[1][1], t2)
-
-	mul(t0, x0, z5)
-	mul(t1, x1, z4)
-	mul(t2, x4, z1)
-	add(&a[1][2], t0, t1)
-	addAssign(&a[1][2], t2)
 }
